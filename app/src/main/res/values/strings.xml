@@ -1,0 +1,28 @@
+<resources>
+    <string name="app_name">后台持续定位</string>
+    <string name="startforeground">开始定位</string>
+    <string name="stopforeground">停止定位</string>
+    <string name="PingFang_SC_Medium">PingFang-SC-Medium</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="prompt_email">Email</string>
+    <string name="prompt_phone">请输入电话号码</string>
+    <string name="prompt_password">请输入密码</string>
+    <string name="action_sign_in">登录或注册</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="welcome">"Welcome !"</string>
+    <string name="invalid_username">非法手机号，请检查</string>
+    <string name="invalid_password">密码必须大于5个长度</string>
+    <string name="login_failed">"登录失败"</string>
+    <string name="title_activity_navigation">navigation</string>
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+    <string name="nav_header_title">昵称</string>
+    <string name="nav_header_subtitle">每日目标：两公里！</string>
+    <string name="nav_header_desc">Navigation header</string>
+    <string name="action_settings">设置</string>
+
+    <string name="menu_home">主页</string>
+    <string name="menu_gallery">地图</string>
+    <string name="menu_slideshow">设置</string>
+    <string name="title_activity_my_navigation">实时定位与安全服务</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#1F2131</color>
+    <color name="colorPrimaryDark">#ED1F2131</color>
+    <color name="action_bar_devided_line">#FF232537</color>
+    <color name="color_layout">#CC22253D</color>
+    <color name="color_btn_press">#292B3C</color>
+    <color name="color_btn_nopress">#171924</color>
+    <color name="color_btn">#292B3C</color>
+    <color name="colorAccent">#03DAC5</color>
+</resources>
