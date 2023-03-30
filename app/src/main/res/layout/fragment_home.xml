@@ -4,29 +4,33 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".ui.home.HomeFragment"
+    android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:gravity="center_horizontal">
+    tools:context=".ui.home.HomeFragment">
 
-
-    <TextView
-        android:id="@+id/textView2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="230dp"
-        android:text="您今日已运动："
-        android:textAlignment="center"
-        android:textSize="18dp"
-        app:flow_verticalAlign="center"
-        tools:ignore="MissingConstraints" />
 
     <TextView
         android:id="@+id/scrollText1"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="230dp"
+        android:textSize="18dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="10dp"
         android:text="天气晴朗，建议出门散步"
         android:textAlignment="center"
-        android:layout_margin="20dp"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:text="您今日已运动："
+        android:textAlignment="center"
+        android:textSize="18dp"
+        app:flow_verticalAlign="center"
         tools:ignore="MissingConstraints" />
 
 

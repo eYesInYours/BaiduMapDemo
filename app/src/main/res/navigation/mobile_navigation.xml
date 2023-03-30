@@ -15,7 +15,7 @@
     <fragment
         android:id="@+id/nav_gallery"
         android:label="@string/menu_gallery"
-        android:name="com.example.demobaidumap.ui.gallery.MyMapFragment"
+        android:name="com.example.demobaidumap.ui.gallery.GalleryFragment"
         tools:layout="@layout/fragment_gallery" />
 
     <fragment

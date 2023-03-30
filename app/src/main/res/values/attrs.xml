@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+<!--    <attr name="unlock_hint_text" format="string"/>-->
+
+    <declare-styleable name="UnlockView">
+        <attr name="unlock_hint_text" format="string"/>
+        <attr name="unlock_background" format="reference"/>
+    </declare-styleable>
+</resources>
+
+

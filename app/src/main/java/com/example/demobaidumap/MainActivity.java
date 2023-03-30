@@ -159,12 +159,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         // 后台持续运行
         initNotification();
 
-
-
-
-
-
-
         List<String> permissionList = new ArrayList<String>();
 
         /*
@@ -357,7 +351,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         //可选，设置是否需要设备方向结果
         option.setNeedDeviceDirect(true);
 
-        option.setScanSpan(1000);
+        option.setScanSpan(3000);
 
         option.setOpenGps(true);
 

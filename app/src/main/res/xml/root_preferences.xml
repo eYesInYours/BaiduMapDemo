@@ -1,0 +1,45 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory app:title="个人信息">
+
+        <EditTextPreference
+            app:key="name"
+            app:title="姓名"
+            app:defaultValue=""
+            app:summary="请输入你的名字"
+            app:useSimpleSummaryProvider="true" />
+            <EditTextPreference
+            android:key="contact_phone"
+            android:title="紧急联系人"
+            android:defaultValue=""
+            android:summary=""
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+             />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory app:title="权限与系统设置">
+
+        <SwitchPreferenceCompat
+            app:key="sync"
+            app:title="振动"
+            android:defaultValue="true"/>
+        <SwitchPreference
+            android:defaultValue="false"
+            android:key="switch_warning"
+            android:title="一键报警"
+            app:summary="紧急情况下自动联系预设联系人"
+            app:defaultValue="true"/>
+
+        <com.example.demobaidumap.ui.customPreference.CustomPreference
+            android:key="my_preference"
+            android:title="闹钟提醒"
+            app:summary="设置主题与时间"/>
+
+
+    </PreferenceCategory>
+
+
+</PreferenceScreen>

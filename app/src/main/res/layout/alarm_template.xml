@@ -1,0 +1,40 @@
+<LinearLayout android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--    左侧布局    -->
+    <LinearLayout
+        android:id="@+id/left_layout"
+        android:layout_width="299dp"
+        android:layout_height="80dp"
+        android:orientation="vertical">
+
+        <!-- 上方 TextView -->
+        <TextView
+            android:id="@+id/alarm_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="10:30"
+            android:textSize="32sp" />
+
+        <!-- 下方 TextView -->
+        <TextView
+            android:id="@+id/alarm_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alarm Description"
+            android:textSize="14sp" />
+
+    </LinearLayout>
+
+    <!-- 右侧开关 -->
+    <Switch
+        android:id="@+id/switch_button"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:width="80dp"
+        android:gravity="center_vertical" />
+
+</LinearLayout>
