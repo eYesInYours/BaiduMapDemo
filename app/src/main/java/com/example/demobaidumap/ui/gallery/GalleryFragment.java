@@ -1,12 +1,16 @@
 package com.example.demobaidumap.ui.gallery;
 
+import static android.app.Activity.RESULT_OK;
 import static androidx.core.content.ContextCompat.getSystemService;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.app.SearchableInfo;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -27,6 +31,9 @@ import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,7 +43,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.baidu.location.BDAbstractLocationListener;
@@ -60,24 +69,38 @@ import com.baidu.mapapi.map.Polyline;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.map.track.TraceOptions;
 import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.search.poi.OnGetPoiSearchResultListener;
+import com.baidu.mapapi.search.poi.PoiDetailResult;
+import com.baidu.mapapi.search.poi.PoiDetailSearchResult;
+import com.baidu.mapapi.search.poi.PoiIndoorResult;
+import com.baidu.mapapi.search.poi.PoiResult;
+import com.baidu.mapapi.search.poi.PoiSearch;
+import com.baidu.navisdk.adapter.BNRoutePlanNode;
 import com.baidu.navisdk.adapter.BaiduNaviManagerFactory;
 import com.baidu.navisdk.adapter.IBNTTSManager;
 import com.baidu.navisdk.adapter.IBaiduNaviManager;
+import com.baidu.navisdk.adapter.impl.BaiduNaviManager;
 import com.baidu.navisdk.adapter.struct.BNTTsInitConfig;
 import com.example.demobaidumap.MainActivity;
 import com.example.demobaidumap.MyNavigation;
 import com.example.demobaidumap.NotificationUtils;
 import com.example.demobaidumap.R;
+import com.example.demobaidumap.SharedViewModel;
 import com.example.demobaidumap.StepService;
-import com.example.demobaidumap.databinding.FragmentGalleryBinding;
+import com.example.demobaidumap.search.Poi;
+import com.example.demobaidumap.search.SearchActivity;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GalleryFragment extends Fragment implements SensorEventListener {
-    private FragmentGalleryBinding binding;
+import com.baidu.mapapi.CoordType;
+import com.baidu.mapapi.SDKInitializer;
+
+public class GalleryFragment extends Fragment implements SensorEventListener,SearchActivity.OnDataPassListener {
+//    private FragmentGalleryBinding binding;
+    private FragmentActivity mActivity;
 
     TextView locationInfo;
     MapView mMapView;
@@ -123,6 +146,17 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
 
     private Boolean stepFlag = true;
 
+    // 初始化POI检索
+    private PoiSearch mPoiSearch = null;
+    ListView mPoiListView;
+//    private PoiListAdapter mAdapter;
+    LinearLayout searchLayout;
+    ImageView searchButton;
+
+    private SharedViewModel sharedViewModel;
+
+    private double startLatitude;
+    private double startLongitude;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -132,7 +166,6 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
         SDKInitializer.initialize(context);
         SDKInitializer.setCoordType(CoordType.BD09LL);
 
-
         //导航初始化
 //        File sdDir = null;
 //        boolean sdCardExist = Environment.getExternalStorageState()
@@ -141,6 +174,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
 //            sdDir = Environment.getExternalStorageDirectory();//获取跟目录
 //        }
 //        sdDir.toString()
+
         File sdcardDir = Environment.getExternalStorageDirectory();
         BaiduNaviManagerFactory.getBaiduNaviManager().init(getContext(), sdcardDir.getAbsolutePath(), "lmap",
                 new IBaiduNaviManager.INaviInitListener() {
@@ -173,7 +207,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
                         Toast.makeText(getContext(), "百度导航引擎初始化成功", Toast.LENGTH_SHORT).show();
 //                        Looper.loop();
                         // 初始化tts
-                        initTTs();
+//                        initTTs();
 
                     }
 
@@ -237,14 +271,26 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
         mMapView = view.findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
 
-        mForegroundBtn = (Button) view.findViewById(R.id.bt_foreground);
+        searchButton = view.findViewById(R.id.search_button);
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getActivity(), SearchActivity.class);
+//                startActivity(intent);
+                startActivityForResult(intent, 1);
+            }
+        });
+//        searchLayout = searchLayout.findViewById(R.id.search_layout);
 
-        locationInfo = view.findViewById(R.id.locationInfo);
+//        mForegroundBtn = (Button) view.findViewById(R.id.bt_foreground);
+//        locationInfo = view.findViewById(R.id.locationInfo);
 
         ppp = new ArrayList();
 
         return view;
     }
+
+
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -271,25 +317,26 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
 
 
 
-        mForegroundBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v){
-                if(isEnableLocInForeground){
-                    //关闭后台定位（true：通知栏消失；false：通知栏可手动划除）
-                    mLocationClient.disableLocInForeground(true);
-                    isEnableLocInForeground = false;
-                    mForegroundBtn.setText(R.string.startforeground);
-                    mLocationClient.stop();
-                } else {
-                    //开启后台定位
-                    // 将定位SDK的SERVICE设置成为前台服务, 提高定位进程存活率
-                    mLocationClient.enableLocInForeground(1, mNotification);
-                    isEnableLocInForeground = true;
-                    mForegroundBtn.setText(R.string.stopforeground);
-                    mLocationClient.start();
-                }
-            }
-        });
+        // 后台定位
+//        mForegroundBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v){
+//                if(isEnableLocInForeground){
+//                    //关闭后台定位（true：通知栏消失；false：通知栏可手动划除）
+//                    mLocationClient.disableLocInForeground(true);
+//                    isEnableLocInForeground = false;
+//                    mForegroundBtn.setText(R.string.startforeground);
+//                    mLocationClient.stop();
+//                } else {
+//                    //开启后台定位
+//                    // 将定位SDK的SERVICE设置成为前台服务, 提高定位进程存活率
+//                    mLocationClient.enableLocInForeground(1, mNotification);
+//                    isEnableLocInForeground = true;
+//                    mForegroundBtn.setText(R.string.stopforeground);
+//                    mLocationClient.start();
+//                }
+//            }
+//        });
         // 后台持续运行
         initNotification();
 
@@ -425,17 +472,35 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
 
             String locationDescribe = Location.getLocationDescribe();    //获取位置描述信息，比如：在北江豪庭附近
 
-            StringBuffer currentPosition = new StringBuffer(256);
-            currentPosition.append("纬度: ");
-            currentPosition.append(Location.getLatitude()+" , ");
-            currentPosition.append( "经度: ");
-            currentPosition.append(Location.getLongitude()+"\n");
-            if (null != locationInfo){
-                locationInfo.append(currentPosition.toString());
-            }
-
         }
     }
+
+
+    // 搜索结果回调
+    private OnGetPoiSearchResultListener mPoiSearchResultListener = new OnGetPoiSearchResultListener() {
+        @Override
+        public void onGetPoiResult(PoiResult poiResult) {
+            if (poiResult != null && poiResult.getAllPoi() != null) {
+
+            }
+        }
+
+        @Override
+        public void onGetPoiDetailResult(PoiDetailResult poiDetailResult) {
+
+        }
+
+        @Override
+        public void onGetPoiDetailResult(PoiDetailSearchResult poiDetailSearchResult) {
+
+        }
+
+        @Override
+        public void onGetPoiIndoorResult(PoiIndoorResult poiIndoorResult) {
+
+        }
+    };
+
 
     /*
      * 绘制运动轨迹的方法
@@ -493,7 +558,9 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
 
         Log.e("MyMap",  " latitude:" + Location.getLatitude()
                 + " longitude:" + Location.getLongitude() + "  数组长度：" +ppp.size());
-
+        this.startLatitude = Location.getLatitude();
+        this.startLongitude = Location.getLongitude();
+        Log.i("location",this.startLatitude+"-"+this.startLongitude);
 
         mCurrentLat = Location.getLatitude();
         mCurrentLon = Location.getLongitude();
@@ -672,7 +739,6 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
 
 
 
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -690,14 +756,39 @@ public class GalleryFragment extends Fragment implements SensorEventListener {
     }
 
     @Override
+    public void onDataPass(Poi poi) {
+        Log.e("poi",""+poi);
+    }
+
+    @Override
     public void onResume() {
         super.onResume();
         mMapView.onResume();
+    }
+
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK && requestCode == 1) {
+            double endLatitude = data.getDoubleExtra("latitude", 0.0);  // 获取纬度数据
+            double endLongitude = data.getDoubleExtra("longitude", 0.0);  // 获取经度数据
+            // 在A页面中使用获取到的坐标数据进行导航
+            Log.e("warning",this.startLatitude+""+this.startLongitude);
+            Log.e("error",endLatitude+""+endLatitude);
+
+
+            // 开始导航
+
+
+            
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
         mMapView.onPause();
+        // 测试页面跳转，存储参数
     }
 }

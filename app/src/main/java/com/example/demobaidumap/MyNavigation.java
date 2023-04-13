@@ -1,25 +1,15 @@
 package com.example.demobaidumap;
 
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
-import android.view.animation.OvershootInterpolator;
-import android.widget.Toast;
-
-import com.example.demobaidumap.ui.setting.SettingsFragment;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
@@ -29,16 +19,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.demobaidumap.databinding.ActivityMyNavigationBinding;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 public class MyNavigation extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMyNavigationBinding binding;
-//    FloatingActionButton fab;
-
-
+    private SharedViewModel sharedViewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +36,9 @@ public class MyNavigation extends AppCompatActivity {
 
         View icon1 = findViewById(R.id.icon1);
         View icon2 = findViewById(R.id.icon2);
+
+        ViewModelProvider provider = new ViewModelProvider(this);
+        sharedViewModel = provider.get(SharedViewModel.class);
 
         binding.appBarMyNavigation.fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -107,6 +95,11 @@ public class MyNavigation extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         // 菜单项和导航目的地正确关联
         NavigationUI.setupWithNavController(navigationView, navController);
+    }
+
+    // 返回共享数据实例
+    public SharedViewModel getSharedViewModel(){
+        return sharedViewModel;
     }
 
     @Override
