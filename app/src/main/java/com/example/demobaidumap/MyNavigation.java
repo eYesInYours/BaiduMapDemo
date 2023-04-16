@@ -1,14 +1,31 @@
 package com.example.demobaidumap;
 
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
+import android.view.WindowManager;
+import android.widget.Toast;
+
+import com.example.demobaidumap.fall.FallDetectionService;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
@@ -19,6 +36,9 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.demobaidumap.databinding.ActivityMyNavigationBinding;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MyNavigation extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
@@ -28,6 +48,11 @@ public class MyNavigation extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // 开始跌倒检测
+        Intent intent = new Intent(this, FallDetectionService.class);
+        startService(intent);
+
 
         binding = ActivityMyNavigationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -95,7 +120,81 @@ public class MyNavigation extends AppCompatActivity {
         NavigationUI.setupActionBarWithNavController(this, navController, mAppBarConfiguration);
         // 菜单项和导航目的地正确关联
         NavigationUI.setupWithNavController(navigationView, navController);
+
+
+        /*
+         * 这里是添加权限
+         * */
+        List<String> permissionList = new ArrayList<String>();
+//        Context context = getContext().getApplicationContext();
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.ACCESS_FINE_LOCATION);
+        }
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.READ_PHONE_STATE);
+        }
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.ACTIVITY_RECOGNITION);
+        }
+//        if(ContextCompat.checkSelfPermission(this, Manifest.permission.SYSTEM_ALERT_WINDOW) != PackageManager.PERMISSION_GRANTED){
+//            permissionList.add(Manifest.permission.SYSTEM_ALERT_WINDOW);
+//        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.CALL_PHONE);
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.SEND_SMS);
+        }
+        if(!permissionList.isEmpty()){
+            String [] permissions = permissionList.toArray(new String[permissionList.size()]);
+            ActivityCompat.requestPermissions(this, permissions, 1);
+        }
+
+        // 悬浮窗
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            Intent intent2 = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + this.getPackageName()));
+            this.startActivity(intent2);
+        }
+
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Log.e("resCode","requestCode"+requestCode);
+        switch (requestCode) {
+            case 1:
+                for (int i = 0; i < permissions.length; i++) {
+                    if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                        // 申请成功
+                        Log.d("TAG", "["+permissions[i]+"]" + "ACTIVITY_RECOGNITION 申请成功");
+                    } else {
+                        // 申请失败
+                        Log.d("TAG", "["+permissions[i]+"]" + "ACTIVITY_RECOGNITION 申请失败");
+                    }
+                }
+
+                if (grantResults.length > 0) {
+                    for (int result : grantResults) {
+                        if (result != PackageManager.PERMISSION_GRANTED) {
+                            Toast.makeText(this, "必须同意所有的权限才能使用本程序", Toast.LENGTH_SHORT).show();
+                            finish();
+                            return;
+                        }
+                    }
+//                    requestLocation();
+                }else{
+                    Toast.makeText(this, "发生未知错误", Toast.LENGTH_SHORT).show();
+                    finish();
+                }
+                break;
+        }
+    }
+
 
     // 返回共享数据实例
     public SharedViewModel getSharedViewModel(){

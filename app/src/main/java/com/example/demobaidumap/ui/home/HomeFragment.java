@@ -84,10 +84,10 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         /*
          * 获取设备支持的传感器
          * */
-        List<Sensor> sensorsList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
-        for(Sensor sensor : sensorsList){
-            Log.d("支持的传感器，",sensor.getName().toString());
-        }
+//        List<Sensor> sensorsList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
+//        for(Sensor sensor : sensorsList){
+//            Log.d("支持的传感器，",sensor.getName().toString());
+//        }
 
         // 获取计步传感器服务：返回从开机到目前为止的步数。虚拟机没有counter传感器，真机运行
         stepCounter = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
@@ -104,29 +104,45 @@ public class HomeFragment extends Fragment implements SensorEventListener {
     // 计步传感器方法
     public void registerStepCounter(){
 
-            stepCounterListener = new SensorEventListener() {
-                @Override
-                public void onSensorChanged(SensorEvent sensorEvent) {
-                    if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_COUNTER){
-                        Context context = getActivity().getApplicationContext();
+        stepCounterListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent sensorEvent) {
+                if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_COUNTER){
+                    Context context = getActivity().getApplicationContext();
 
-                        // 赋值步数（COUNTER获取的是开机的总步数），并将步数保存到SharedPreferences中
-                        int stepCount = (int)sensorEvent.values[0];
-                        SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-//                        String savedStepCount = prefs.getString(KEY_STEP_COUNT, "");
+                    // 赋值步数（COUNTER获取的是开机的总步数），并将步数保存到SharedPreferences中
+                    int stepCount = (int)sensorEvent.values[0];
+                    SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+                    String savedStepCount = prefs.getString(KEY_STEP_COUNT, "");
+                    String[] all = savedStepCount.split("[@]");
+
+                    // 当前日期和存储的日期不一致，需要清零步数
+                    if (!all[0].equals(nowadays)) {
                         SharedPreferences.Editor editor = prefs.edit();
-                        editor.putString(KEY_STEP_COUNT,  nowadays+"@"+stepCount);
+                        editor.putString(KEY_STEP_COUNT, nowadays+"@"+stepCount);
                         editor.apply();
+                    } else {
+                        int lastStepCount = Integer.parseInt(all[1]);
+                        int todayStepCount = stepCount - lastStepCount;
+                        Log.e("todayStepCount",""+todayStepCount);
                     }
 
+
+                    SharedPreferences prefs2 = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+//                        String savedStepCount = prefs.getString(KEY_STEP_COUNT, "");
+                    SharedPreferences.Editor editor = prefs2.edit();
+                    editor.putString(KEY_STEP_COUNT,  nowadays+"@"+stepCount);
+                    editor.apply();
                 }
 
-                @Override
-                public void onAccuracyChanged(Sensor sensor, int i) {
+            }
 
-                }
-            };
-            mSensorManager.registerListener(stepCounterListener, stepCounter, SensorManager.SENSOR_DELAY_UI);
+            @Override
+            public void onAccuracyChanged(Sensor sensor, int i) {
+
+            }
+        };
+        mSensorManager.registerListener(stepCounterListener, stepCounter, SensorManager.SENSOR_DELAY_UI);
     }
 
     @Override

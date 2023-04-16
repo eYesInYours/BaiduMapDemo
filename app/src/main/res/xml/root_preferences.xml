@@ -3,19 +3,20 @@
 
     <PreferenceCategory app:title="个人信息">
 
+<!--        app:useSimpleSummaryProvider="true" -->
         <EditTextPreference
             app:key="name"
             app:title="姓名"
             app:defaultValue=""
             app:summary="请输入你的名字"
-            app:useSimpleSummaryProvider="true" />
+            />
             <EditTextPreference
-            android:key="contact_phone"
-            android:title="紧急联系人"
-            android:defaultValue=""
-            android:summary=""
-            app:useSimpleSummaryProvider="true"
-            android:singleLine="true"
+                android:key="pre_key_phone"
+                android:title="紧急联系人"
+                android:defaultValue=""
+                android:summary=""
+                app:useSimpleSummaryProvider="true"
+                android:singleLine="true"
              />
 
     </PreferenceCategory>

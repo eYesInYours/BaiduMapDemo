@@ -6,9 +6,12 @@ import android.app.Service;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.provider.Settings;
 import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
@@ -45,7 +48,8 @@ public class FallDetectionService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "FallDetectionService.onCreate()");
+        Log.d("FALL", "FallDetectionService.onCreate()");
+
 
         fallSensorManager = new FallSensorManager(this);
         fallSensorManager.initSensor();
@@ -54,7 +58,7 @@ public class FallDetectionService extends Service {
         fall.setThresholdValue(25,5);
         running = true;
         //在通知栏上显示服务运行
-        showInNotification();
+//        showInNotification();
 
         localBroadcastManager = LocalBroadcastManager.getInstance(this);
         intentFilter = new IntentFilter();
@@ -67,7 +71,7 @@ public class FallDetectionService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "FallDetectionService.onStartCommand");
+        Log.d("FALL", "FallDetectionService.onStartCommand");
         detectThread = new DetectThread();
         detectThread.start();
         return super.onStartCommand(intent, flags, startId);
@@ -85,10 +89,10 @@ public class FallDetectionService extends Service {
         @Override
         public void run() {
             fall.fallDetection();
-            Log.d(TAG, "DetectThread.start()");
+            Log.d("FALL", "DetectThread.start()");
             while (running) {
                 if (fall.isFell()) {
-                    Log.e(TAG, "跌倒了");
+                    Log.e("FALL", "跌倒了");
                     running = false;
                     Message msg = handler.obtainMessage();
                     msg.what = FELL;
@@ -107,7 +111,7 @@ public class FallDetectionService extends Service {
         public void handleMessage(Message msg) {
             switch(msg.what){
                 case FELL:
-                    Log.e(TAG, "FELL");
+                    Log.e("FALL", "FELL");
                     //报警
 //                    showAlertDialog();
                     Intent intent = new Intent("com.broadcast.FALL_LOCAL_BROADCAST");

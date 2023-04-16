@@ -5,10 +5,12 @@ import static androidx.core.content.ContextCompat.getSystemService;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.SearchableInfo;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -18,6 +20,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.TriggerEventListener;
 import android.location.LocationManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -69,6 +72,8 @@ import com.baidu.mapapi.map.Polyline;
 import com.baidu.mapapi.map.PolylineOptions;
 import com.baidu.mapapi.map.track.TraceOptions;
 import com.baidu.mapapi.model.LatLng;
+import com.baidu.mapapi.navi.BaiduMapNavigation;
+import com.baidu.mapapi.navi.NaviParaOption;
 import com.baidu.mapapi.search.poi.OnGetPoiSearchResultListener;
 import com.baidu.mapapi.search.poi.PoiDetailResult;
 import com.baidu.mapapi.search.poi.PoiDetailSearchResult;
@@ -80,17 +85,20 @@ import com.baidu.navisdk.adapter.BaiduNaviManagerFactory;
 import com.baidu.navisdk.adapter.IBNTTSManager;
 import com.baidu.navisdk.adapter.IBaiduNaviManager;
 import com.baidu.navisdk.adapter.impl.BaiduNaviManager;
+import com.baidu.navisdk.adapter.map.BNItemOverlay;
 import com.baidu.navisdk.adapter.struct.BNTTsInitConfig;
 import com.example.demobaidumap.MainActivity;
 import com.example.demobaidumap.MyNavigation;
 import com.example.demobaidumap.NotificationUtils;
 import com.example.demobaidumap.R;
 import com.example.demobaidumap.SharedViewModel;
-import com.example.demobaidumap.StepService;
+//import com.example.demobaidumap.StepService;
+import com.example.demobaidumap.fall.FallDetectionService;
 import com.example.demobaidumap.search.Poi;
 import com.example.demobaidumap.search.SearchActivity;
 
 import java.io.File;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -165,100 +173,6 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         SDKInitializer.setAgreePrivacy(context,true);
         SDKInitializer.initialize(context);
         SDKInitializer.setCoordType(CoordType.BD09LL);
-
-        //导航初始化
-//        File sdDir = null;
-//        boolean sdCardExist = Environment.getExternalStorageState()
-//                .equals(android.os.Environment.MEDIA_MOUNTED);//判断sd卡是否存在
-//        if(sdCardExist){
-//            sdDir = Environment.getExternalStorageDirectory();//获取跟目录
-//        }
-//        sdDir.toString()
-
-        File sdcardDir = Environment.getExternalStorageDirectory();
-        BaiduNaviManagerFactory.getBaiduNaviManager().init(getContext(), sdcardDir.getAbsolutePath(), "lmap",
-                new IBaiduNaviManager.INaviInitListener() {
-                    @Override
-                    public void onAuthResult(int i, String s) {
-                        if(i==0)
-                        {
-                            Toast.makeText(getContext(), "key校验成功!", Toast.LENGTH_SHORT).show();
-                        }
-                        else if(i==1)
-                        {
-                            Toast.makeText(getContext(), "key校验失败, " + s, Toast.LENGTH_SHORT).show();
-                        }
-                    }
-
-                    @Override
-                    public void initStart() {
-                        Log.e("init","start");
-
-//                        Looper.prepare();
-                        Toast.makeText(getContext(), "百度导航引擎初始化开始", Toast.LENGTH_SHORT).show();
-//                        Looper.loop();
-                    }
-
-                    @Override
-                    public void initSuccess() {
-                        Log.e("init","success");
-
-//                        Looper.prepare();
-                        Toast.makeText(getContext(), "百度导航引擎初始化成功", Toast.LENGTH_SHORT).show();
-//                        Looper.loop();
-                        // 初始化tts
-//                        initTTs();
-
-                    }
-
-                    @Override
-                    public void initFailed(int i) {
-                        // 10
-                        Log.e("errCode",""+i);
-
-                        Looper.prepare();
-                        Toast.makeText(getContext(), "百度导航引擎初始化失败", Toast.LENGTH_SHORT).show();
-                        Looper.loop();
-                    }
-                });
-
-    }
-
-
-    private void initTTs() {
-        Log.e("initTTs","ok");
-        File sdDir = null;
-        boolean sdCardExist = Environment.getExternalStorageState()
-                .equals(android.os.Environment.MEDIA_MOUNTED);//判断sd卡是否存在
-        if(sdCardExist){
-            sdDir = Environment.getExternalStorageDirectory();//获取跟目录
-        }
-        BNTTsInitConfig.Builder builder = new BNTTsInitConfig.Builder();
-        builder.context(getContext())
-                .sdcardRootPath(sdDir.toString())
-                .appFolderName("lmap").
-                appId("31737152");
-        BaiduNaviManagerFactory.getTTSManager().initTTS(builder.build());
-        Log.e("initTTs","will");
-        // 注册同步内置tts状态回调
-        BaiduNaviManagerFactory.getTTSManager().setOnTTSStateChangedListener(
-                new IBNTTSManager.IOnTTSPlayStateChangedListener() {
-                    @Override
-                    public void onPlayStart() {
-                        Log.e("lmap", "ttsCallback.onPlayStart");
-                    }
-
-                    @Override
-                    public void onPlayEnd(String speechId) {
-                        Log.e("lmap", "ttsCallback.onPlayEnd");
-                    }
-
-                    @Override
-                    public void onPlayError(int code, String message) {
-                        Log.e("lmap", "ttsCallback.onPlayError");
-                    }
-                }
-        );
     }
 
 
@@ -278,6 +192,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
                 Intent intent = new Intent(getActivity(), SearchActivity.class);
 //                startActivity(intent);
                 startActivityForResult(intent, 1);
+
             }
         });
 //        searchLayout = searchLayout.findViewById(R.id.search_layout);
@@ -300,14 +215,6 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         Context context = getContext().getApplicationContext();
 
         mSensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
-
-        /*
-         * 获取设备支持的传感器
-         * */
-//        List<Sensor> sensorsList = mSensorManager.getSensorList(Sensor.TYPE_ALL);
-//        for(Sensor sensor : sensorsList){
-//            Log.d("支持的传感器，",sensor.getName().toString());
-//        }
 
         // 方向方法
         registerDirection();
@@ -357,9 +264,19 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         if(ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED){
             permissionList.add(Manifest.permission.ACTIVITY_RECOGNITION);
         }
+//        if(ContextCompat.checkSelfPermission(context, Manifest.permission.SYSTEM_ALERT_WINDOW) != PackageManager.PERMISSION_GRANTED){
+//            permissionList.add(Manifest.permission.SYSTEM_ALERT_WINDOW);
+//        }
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED){
+            permissionList.add(Manifest.permission.SEND_SMS);
+        }
         if(!permissionList.isEmpty()){
             String [] permissions = permissionList.toArray(new String[permissionList.size()]);
             ActivityCompat.requestPermissions(getActivity(), permissions, 1);
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(getContext())) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getContext().getPackageName()));
+            getContext().startActivity(intent);
         }
 
         // 该行要加上，否则下面获取实例为null
@@ -774,14 +691,24 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
             double endLatitude = data.getDoubleExtra("latitude", 0.0);  // 获取纬度数据
             double endLongitude = data.getDoubleExtra("longitude", 0.0);  // 获取经度数据
             // 在A页面中使用获取到的坐标数据进行导航
-            Log.e("warning",this.startLatitude+""+this.startLongitude);
-            Log.e("error",endLatitude+""+endLatitude);
+            Log.e("warning", this.startLatitude + "" + this.startLongitude);
+            Log.e("error", endLatitude + "" + endLatitude);
+
+            try {
+                Intent intent = new Intent("android.intent.action.VIEW", Uri.parse("baidumap://map/direction?destination=latlng:" + endLatitude + "," + endLongitude + "|name:目的地&mode=driving"));
+                intent.setPackage("com.baidu.BaiduMap");
+                if(intent.resolveActivity(getActivity().getPackageManager()) != null){
+                    startActivity(intent);
+                    Log.e("LOG LOGIN", "百度地图客户端已经安装") ;
+                }else {
+                    Log.e("LOG FAIL", "没有安装百度地图客户端") ;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
 
-            // 开始导航
 
-
-            
         }
     }
 

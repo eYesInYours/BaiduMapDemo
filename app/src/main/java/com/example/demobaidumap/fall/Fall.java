@@ -29,7 +29,7 @@ public class Fall{
     public void setThresholdValue(float highThreshold, float lowThreshold){
         this.highThresholdValue = highThreshold;
         this.lowThresholdValue = lowThreshold;
-        Log.d(TAG, highThreshold + "   " + lowThreshold);
+//        Log.d(TAG, highThreshold + "   " + lowThreshold);
     }
 
 
@@ -131,7 +131,7 @@ public class Fall{
                 s3 = temp;
             }
             svmFilteringData[i] = s2;
-            Log.d(TAG, s1 + " " + s2 + " " + s3);
+//            Log.d(TAG, s1 + " " + s2 + " " + s3);
 //            Log.d(TAG, "Fall.setSvmFilteringData" + svmFilteringData[i]);
         }
 

@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SDKInitializer.setCoordType(CoordType.BD09LL);
 
         setContentView(R.layout.activity_main);
-        locationInfo = findViewById(R.id.locationInfo);
+//        locationInfo = findViewById(R.id.locationInfo);
 
         mMapView = findViewById(R.id.bmapView);
         mBaiduMap = mMapView.getMap();
@@ -125,7 +125,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
 
-        StepService.showTest();
+//        StepService.showTest();
 
         // 方向方法
         registerDirection();
@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        mForegroundBtn = (Button) findViewById(R.id.bt_foreground);
+//        mForegroundBtn = (Button) findViewById(R.id.bt_foreground);
         mForegroundBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v){

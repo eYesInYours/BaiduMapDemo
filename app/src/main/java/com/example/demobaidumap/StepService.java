@@ -13,8 +13,8 @@ public class StepService {
     private int currentTime;
 
     /*
-    * 用户授予权限后，获取第一天开始计数的时间
-    * */
+     * 用户授予权限后，获取第一天开始计数的时间
+     * */
     public static String showTest(){
         SimpleDateFormat formatter = new SimpleDateFormat("yyyy年MM月dd日 HH:mm:ss");
         // 当前时间戳

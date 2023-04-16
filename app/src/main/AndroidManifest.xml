@@ -25,6 +25,16 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- 诱导悬浮窗 -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+
+
+
+
+
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -62,6 +72,7 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
         <activity
             android:name=".MyNavigation"
             android:exported="false"
@@ -102,6 +113,8 @@
             android:name=".fall.FallDetectionService"
             android:enabled="true"
             android:exported="true" />
+
+        <service android:name=".StepService" />
 
         <receiver
             android:name=".fall.FallLocalReceiver"

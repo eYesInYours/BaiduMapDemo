@@ -1,23 +1,36 @@
 package com.example.demobaidumap.fall;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Vibrator;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
+import android.telecom.PhoneAccountHandle;
+import android.telecom.TelecomManager;
 import android.telephony.SmsManager;
+import android.telephony.SubscriptionInfo;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.app.ActivityCompat;
 
 import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
@@ -26,8 +39,10 @@ import com.baidu.location.LocationClientOption;
 import com.example.demobaidumap.MainActivity;
 import com.example.demobaidumap.R;
 
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -45,8 +60,9 @@ public class FallLocalReceiver extends BroadcastReceiver {
     public String locationAddress;
     public String locationTime;
     private Context context;
-    private final String TAG = "liuweixiang";
+    private final String TAG = "HELLO WORLD";
 
+    private volatile int showCountTime = 15;
 
     public FallLocalReceiver() {
     }
@@ -64,10 +80,55 @@ public class FallLocalReceiver extends BroadcastReceiver {
             startVibrate();
         }
 
-        startAlarm();
+//        startAlarm();
         startLocation();
 
+//        callPhone(context);
+    }
 
+    // 拨打电话 Context context
+    public void callPhone(){
+        Log.e("call phone","ok");
+//        String phoneNumber = "19376753837";
+        String phoneNumber = sharedPreferences.getString("pre_key_phone", null);
+        Log.e("phoneNumber",""+phoneNumber);
+//        Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+//
+//        // 添加拨打电话的权限
+//        dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+//            Log.e("call phone","have permission");
+//
+//            try {
+//                TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                    if (telephonyManager.getPhoneCount() > 1) {
+//                        // 获取第一个电话卡的subId
+//                        final int subIdForSlot;
+//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+//                            subIdForSlot = SubscriptionManager.getDefaultSubscriptionId();
+//                            if (subIdForSlot != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+//                                ComponentName componentName = new ComponentName("com.android.phone", "com.android.services.telephony.TelephonyConnectionService");
+//                                PhoneAccountHandle phoneAccountHandle = null;
+//                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//                                    phoneAccountHandle = new PhoneAccountHandle(componentName, String.valueOf(subIdForSlot));
+//                                }
+//                                dialIntent.putExtra("android.telecom.extra.PHONE_ACCOUNT_HANDLE", phoneAccountHandle);
+//                            }
+//                        }
+//
+//                    }
+//                }
+//                dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//                context.startActivity(dialIntent);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//
+//            // 发起拨打电话
+//            dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//            context.startActivity(dialIntent);
+//        }
     }
 
     private class MyLocationListener extends BDAbstractLocationListener {
@@ -81,8 +142,10 @@ public class FallLocalReceiver extends BroadcastReceiver {
                     // 定位成功回调信息，设置相关消息
                     locationAddress = Location.getAddrStr();
                     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    Date date = new Date(Location.getTime());
-                    locationTime = df.format(date);//定位时间
+                    // 将当前时间转换为上一行格式
+                    locationTime = df.format(new Date(System.currentTimeMillis()));
+                    // locationTime = df.format(new Date(Location.getTime()));
+
                 } else {
                     // 显示错误信息
                     Log.e("BaiduError","location Error, ErrCode:"
@@ -98,38 +161,67 @@ public class FallLocalReceiver extends BroadcastReceiver {
     }
 
 
-
     /*
     弹窗报警
      */
-    private void showAlertDialog() {
-        countingView = new TextView(context);
-        AlertDialog.Builder builder = new AlertDialog.Builder(
-                context.getApplicationContext());
+private void showAlertDialog() {
+        Log.e("showDialog","show");
+        AlertDialog.Builder builder = new AlertDialog.Builder(context.getApplicationContext());
+
+        countDown();
+
         builder.setTitle("跌倒警报");
-        builder.setView(countingView);
-        builder.setMessage("检测到跌倒发生，是否发出警报？");
-        builder.setIcon(R.drawable.ic_warning);
+        builder.setMessage("检测到跌倒发生，是否发出警报？\n"+showCountTime+"秒后预警结束，将通知预置联系人");
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
+                //点击取消按钮后的操作
                 timer.cancel();
                 dialog.dismiss();
                 if(isVibrate){
                     stopVibrate();
                 }
-                stopAlarm();
-                Intent startIntent = new Intent(context, FallDetectionService.class);
+    //            stopAlarm();
+                Intent startIntent = new Intent(context.getApplicationContext(), FallDetectionService.class);
+                startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // add this flag
                 context.startService(startIntent);
+
+                Log.e("Dialog","Dialog cancel");
             }
         });
-        dialog = builder.create();
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        countDown();
-        dialog.show();
-        Log.d(TAG, "dialog.create()");
+
+        AlertDialog alertDialog = builder.create();
+        if (context instanceof Activity) {
+            Log.e("1","1");
+            alertDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+            alertDialog.show();
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(context)) {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + context.getPackageName()));
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            }
+
+            WindowManager.LayoutParams wmParams = new WindowManager.LayoutParams();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){//6.0
+                wmParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+            }else {
+                wmParams.type =  WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+            }
+
+            Log.e("2","2");
+
+            alertDialog.getWindow().setType(wmParams.type);
+            alertDialog.show();
+
+        }
+
+        Log.d("Dialog", "dialog.create()");
     }
+
+
+
+
 
     /*
     倒计时
@@ -140,12 +232,14 @@ public class FallLocalReceiver extends BroadcastReceiver {
             int countTime = 10;
             @Override
             public void run() {
-                if(countTime > 0){
-                    countTime --;
+                if(showCountTime > 0){
+                    showCountTime --;
                 }
-                Message msgTime = handler.obtainMessage();
-                msgTime.arg1 = countTime;
-                handler.sendMessage(msgTime);
+                synchronized (handler){
+                    Message msgTime = handler.obtainMessage();
+                    msgTime.arg1 = showCountTime;
+                    handler.sendMessage(msgTime);
+                }
             }
         };
         timer.schedule(timerTask, 50, 1000);
@@ -155,19 +249,31 @@ public class FallLocalReceiver extends BroadcastReceiver {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
+             Log.e("if msg",""+msg.arg1);
             if(msg.arg1 > 0){
-                //动态显示倒计时
-                countingView.setText("                         "
-                        + msg.arg1 + "秒后自动报警");
+                Log.e("msg",""+msg.arg1);
+                Log.e("in if",""+dialog);
             }else{
+                Log.e("in else",""+msg.arg1);
+                Log.e("dialog",""+dialog);
                 //倒计时结束自动关闭
                 if(dialog != null){
                     dialog.dismiss();
                     if(isVibrate){
                         stopVibrate();
                     }
-                    stopAlarm();
+                    Log.e("countdown finish","ok");
+//                    stopAlarm();
+                    callPhone();
                     sendSMS(locationAddress, locationTime);
+                }else{
+//                    dialog.dismiss();
+                    if(isVibrate){
+                        stopVibrate();
+                    }
+                    Log.e("location info",locationAddress+"@"+locationTime);
+                    sendSMS(locationAddress, locationTime);
+                    callPhone();
                 }
                 timer.cancel();
             }
@@ -213,11 +319,20 @@ public class FallLocalReceiver extends BroadcastReceiver {
         SmsManager smsManager = SmsManager.getDefault();
 
         String name = sharedPreferences.getString("pre_key_name", null);
-        String phoneNum = sharedPreferences.getString("pre_key_phone", null);
-        String smsContent = time + name + "在" + address + "发生跌倒了！";
-        smsManager.sendTextMessage(phoneNum, null, smsContent ,null, null);
-        Toast.makeText(context, "短信已经发出", Toast.LENGTH_SHORT).show();
+//        String phoneNum = sharedPreferences.getString("pre_key_phone", null);
+        String phoneNum = "16673854459";
+        String smsContent = "预警提醒：您的被监护人可能发生跌倒，45秒内未取消预警！\n"
+                            + "请前往 ["+ address +"] 查看，" + time + "监听";
+        try {
+            smsManager.sendTextMessage(phoneNum, null, smsContent ,null, null);
+            Toast.makeText(context, "短信已经发出", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(context, "短信发送失败，请检查您的短信设置", Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
     }
+
+
 
     private void startLocation(){
         Log.d(TAG, "FallLocalReceiver.startLocation()");
@@ -245,25 +360,6 @@ public class FallLocalReceiver extends BroadcastReceiver {
         // 启动定位
         mLocationClient.start();
     }
-
-
-//    @Override
-//    public void onLocationChanged(AMapLocation amapLocation) {
-//        if (amapLocation != null) {
-//            if (amapLocation.getErrorCode() == 0) {
-//                //定位成功回调信息，设置相关消息
-//                locationAddress = amapLocation.getAddress();
-//                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//                Date date = new Date(amapLocation.getTime());
-//                locationTime = df.format(date);//定位时间
-//            } else {
-//                //显示错误信息ErrCode是错误码，errInfo是错误信息，详见错误码表。
-//                Log.e("AmapError","location Error, ErrCode:"
-//                        + amapLocation.getErrorCode() + ", errInfo:"
-//                        + amapLocation.getErrorInfo());
-//            }
-//        }
-//    }
 
 
 }
