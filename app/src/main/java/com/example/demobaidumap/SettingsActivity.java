@@ -136,17 +136,24 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object newValue) {
                     // 处理pre_key_phone的值改变时的逻辑
-
-                    // Get the shared preferences editor
                     SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
                     SharedPreferences.Editor editor = sharedPreferences.edit();
-                    // Put the new value for pre_key_phone
                     editor.putString(KEY_PHONE, newValue.toString());
-                    // Save the changes to shared preferences
                     editor.apply();
 
                     Log.e("phonePre change","ok");
+                    return true;
+                }
+            });
 
+            EditTextPreference radiusPref = findPreference("rail_radius");
+            radiusPref.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("rail_radius", newValue.toString());
+                    editor.apply();
                     return true;
                 }
             });

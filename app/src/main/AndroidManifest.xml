@@ -30,9 +30,10 @@
 
     <uses-permission android:name="android.permission.SEND_SMS"/>
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
-
-
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM"/>
 
 
     <application
@@ -75,9 +76,14 @@
 
         <activity
             android:name=".MyNavigation"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/title_activity_my_navigation"
             android:theme="@style/AppTheme.NoActionBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -86,14 +92,13 @@
             android:name=".ui.login.LoginActivity"
             android:exported="true"
             android:label="@string/title_activity_login">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <activity
             android:name=".ui.customPreference.AlarmActivity"
+            android:label="闹钟" />
+        <activity
+            android:name=".ui.track.MyTrackActivity"
             android:label="闹钟" />
         <activity android:name=".ui.customPreference.AlarmShow" />
 <!--        <activity android:name=".search.SearchActivity" />-->
@@ -107,7 +112,12 @@
             android:enabled="true"
             android:process=":remote" />
 
-        <receiver android:name=".ui.customPreference.AlarmReceiver" />
+        <receiver android:name=".ui.customPreference.AlarmReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+            </receiver>
 
         <service
             android:name=".fall.FallDetectionService"

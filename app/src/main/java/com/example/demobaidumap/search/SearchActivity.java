@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -55,6 +56,7 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
     private ArrayAdapter<Poi> mAdapter;
     private List<Poi> MyMapPoiList = new ArrayList<>();;
     ImageView mImageView;
+    ImageView mCreateWeilan;
 
     private String keyword;
     private SharedViewModel sharedViewModel;
@@ -63,6 +65,8 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
 
     private OnDataPassListener mOnDataPass;
 
+    private int parttern = 1;       // 1 搜索  2 创建地理围栏
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -70,6 +74,7 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
 
         mImageView = findViewById(R.id.search_button);
         mSearchBox = findViewById(R.id.edit_text_search);
+        mCreateWeilan = findViewById(R.id.create_weilan);
         mSearchResultList = findViewById(R.id.list_view_poi);
 
 //        sharedViewModel = new ViewModelProvider(this).get(SharedViewModel.class);
@@ -111,7 +116,7 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
                 Log.e("keyword length",""+keyword.length());
                 if(keyword.length()==0){
                     MyMapPoiList.clear();
-                    mAdapter.clear();
+//                    mAdapter.clear();
                     Log.e("clear",""+MyMapPoiList.size());
                 }
             }
@@ -121,6 +126,7 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
         mImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                Toast.makeText(getApplicationContext(), "已为你选择导航模式", Toast.LENGTH_SHORT).show();
                 Log.e("search","action search");
                 // 首先清空上次的搜索
                 MyMapPoiList.clear();
@@ -128,6 +134,15 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
                         .city("长沙")
                         .keyword(keyword)
                         .pageNum(0));
+            }
+        });
+
+        // 创建围栏
+        mCreateWeilan.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                parttern = 2;
+                Toast.makeText(getApplicationContext(), "已为你选择创建地理围栏模式", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -170,15 +185,12 @@ public class SearchActivity extends AppCompatActivity implements OnGetPoiSearchR
                     public void onItemClick(int position) {
                         Poi poi = MyMapPoiList.get(position);
 
-//                        GalleryFragment fragment = new GalleryFragment();
-//                        fragment.setEnd(poi.getPoiLatitude(), poi.getPoiLongitude());
-
-//                        Log.e("fragment ac", ""+ GalleryFragment.getInstance().getActivity() );
-//                        GalleryFragment.getInstance().setEnd(poi.getPoiLatitude(), poi.getPoiLongitude());
 
                         Intent intent = new Intent();
                         intent.putExtra("latitude", poi.getPoiLatitude());  // 将纬度数据放入Intent中
                         intent.putExtra("longitude", poi.getPoiLongitude());  // 将经度数据放入Intent中
+                        Log.e("before intent",""+parttern);
+                        intent.putExtra("parttern", parttern);       // 导航还是创建围栏
                         setResult(RESULT_OK, intent);  // 设置返回结果为OK
                         finish();  // 关闭B页面，返回到A页面
 

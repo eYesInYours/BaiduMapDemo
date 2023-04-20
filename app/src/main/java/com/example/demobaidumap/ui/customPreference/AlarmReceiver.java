@@ -1,7 +1,11 @@
 package com.example.demobaidumap.ui.customPreference;
 
+import static android.content.Context.ALARM_SERVICE;
+
+import android.app.AlarmManager;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +16,8 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.example.demobaidumap.R;
+
+import java.util.Calendar;
 
 public class AlarmReceiver extends BroadcastReceiver {
     @Override
@@ -27,6 +33,33 @@ public class AlarmReceiver extends BroadcastReceiver {
         alarmIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context1.startActivity(alarmIntent);
 
+        // 设置重复闹钟
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        // calendar.add(Calendar.SECOND, 10);
+        calendar.add(Calendar.MINUTE, 1); // 设置1分钟后触发闹钟
+        Intent intent1 = new Intent(context1, AlarmReceiver.class);
+        intent1.putExtra("title", title);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(context1, 0, intent1, PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager alarmManager = (AlarmManager) context1.getSystemService(ALARM_SERVICE);
+
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(calendar.getTimeInMillis(), pendingIntent);
+//            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent);
+//        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+//            alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+//        } else {
+//            alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+//        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AlarmManager.AlarmClockInfo alarmClockInfo = new AlarmManager.AlarmClockInfo(calendar.getTimeInMillis(), pendingIntent);
+            alarmManager.setAlarmClock(alarmClockInfo, pendingIntent);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+        } else {
+            alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // 创建通知渠道，必需

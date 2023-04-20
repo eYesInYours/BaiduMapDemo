@@ -26,7 +26,7 @@
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-
+        android:clickable="true"
         android:text="您今日已运动："
         android:textAlignment="center"
         android:textSize="18dp"

@@ -3,14 +3,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+
     <EditText
         android:id="@+id/edit_text_search"
-        android:layout_width="match_parent"
-        android:layout_height="40dp"
+        android:layout_width="274dp"
+        android:layout_height="37dp"
         android:layout_marginStart="10dp"
         android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp"
+        android:layout_marginEnd="34dp"
         android:layout_marginBottom="20dp"
+        android:layout_toStartOf="@+id/search_button"
         android:background="@android:color/transparent"
         android:hint="搜索"
         android:paddingLeft="18dp"
@@ -18,19 +20,29 @@
         android:textColorHint="#888888"
         android:textSize="18sp" />
 
-
     <ImageView
         android:id="@+id/search_button"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:layout_alignParentRight="true"
-        android:layout_marginRight="20dp"
         android:layout_marginTop="20dp"
+        android:layout_marginRight="75dp"
+        android:clickable="true"
         android:contentDescription="搜索"
-        android:src="@drawable/search"
-        android:clickable="true"/>
+        android:src="@drawable/search" />
 
-        <ListView
+    <ImageView
+        android:id="@+id/create_weilan"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_alignParentRight="true"
+        android:layout_marginTop="20dp"
+        android:layout_marginRight="10dp"
+        android:clickable="true"
+        android:contentDescription="搜索"
+        android:src="@drawable/weilan" />
+
+    <ListView
             android:id="@+id/list_view_poi"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

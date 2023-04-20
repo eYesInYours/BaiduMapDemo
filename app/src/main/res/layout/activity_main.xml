@@ -42,6 +42,18 @@
             </LinearLayout>
 
 
+    <Button
+        android:id="@+id/bt_foreground"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/dp12"
+        android:layout_marginBottom="@dimen/dp12"
+        android:layout_marginRight="@dimen/dp20"
+        android:layout_marginLeft="@dimen/dp20"
+        android:background="@drawable/custom_change_btn"
+        android:text="@string/startforeground"
+        android:textSize="18sp"
+        android:textColor="#ffffff" />
 
 
 <!--        </RelativeLayout>-->

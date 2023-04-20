@@ -69,11 +69,7 @@ public class CustomPreference extends Preference {
                             intent.putExtra("title", title);
 
                             // 创建PendingIntent
-                            PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                                    getContext(),
-                                    0,
-                                    intent,
-                                    PendingIntent.FLAG_IMMUTABLE);
+                            PendingIntent pendingIntent = PendingIntent.getBroadcast(getContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
                             // 获取AlarmManager实例
                             AlarmManager alarmManager = (AlarmManager) getContext().getApplicationContext().getSystemService(ALARM_SERVICE);
@@ -85,10 +81,24 @@ public class CustomPreference extends Preference {
                             calendar.set(Calendar.SECOND, 0);
 
                             // 设置闹钟
-                            alarmManager.setExact(
-                                    AlarmManager.RTC_WAKEUP,
-                                    calendar.getTimeInMillis(),
-                                    pendingIntent);
+//                            alarmManager.setExact(
+//                                    AlarmManager.RTC_WAKEUP,
+//                                    calendar.getTimeInMillis(),
+//                                    pendingIntent);
+                            // 设置闹钟
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                Log.e("ser alarm 1","ok");
+                                alarmManager.setExactAndAllowWhileIdle(
+                                        AlarmManager.RTC_WAKEUP,
+                                        calendar.getTimeInMillis(),
+                                        pendingIntent);
+                            } else {
+                                Log.e("ser alarm 2","ok");
+                                alarmManager.setExact(
+                                        AlarmManager.RTC_WAKEUP,
+                                        calendar.getTimeInMillis(),
+                                        pendingIntent);
+                            }
                             Log.e("alarm","set alarm");
                             Toast.makeText(getContext(), "已设置闹钟", Toast.LENGTH_SHORT).show();
                         }

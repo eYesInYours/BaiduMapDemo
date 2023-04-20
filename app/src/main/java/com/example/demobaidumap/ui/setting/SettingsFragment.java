@@ -40,49 +40,11 @@ public class SettingsFragment extends PreferenceFragment implements SharedPrefer
 
         Log.e("setting","in");
 
-
-
-
     }
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Log.e("change pre",""+key);
-//            switch (key){
-//            case KEY_NAME:
-//                Preference namePre = findPreference(key);
-//                namePre.setSummary(sharedPreferences.getString(key, ""));
-//                break;
-//            case KEY_SEX:
-//                Preference sexPre = findPreference(key);
-//                sexPre.setSummary(sharedPreferences.getString(key, ""));
-//                break;
-//            case KEY_AGE:
-//                Preference agePre = findPreference(key);
-//                agePre.setSummary(sharedPreferences.getString(key, ""));
-//                break;
-//            case KEY_ALERT:
-//                Preference alertPre = findPreference(key);
-//                alertPre.setSummary(sharedPreferences.getString(key, ""));
-//                break;
-//            case KEY_VIBRATE:
-//                break;
-//            case KEY_PHONE:
-//                Log.e("phone set","ok");
-//                Preference phonePre = findPreference(key);
-//                phonePre.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-//                    @Override
-//                    public boolean onPreferenceChange(Preference preference, Object newValue) {
-//                        SharedPreferences.Editor editor = sharedPreferences.edit();
-//                        editor.putString(key, newValue.toString());
-//                        editor.apply();
-//                        preference.setSummary(newValue.toString());
-//                        return true;
-//                    }
-//                });
-////                phonePre.setSummary(sharedPreferences.getString(key, ""));
-//                break;
-//        }
     }
 
     @Override

@@ -83,52 +83,51 @@ public class FallLocalReceiver extends BroadcastReceiver {
 //        startAlarm();
         startLocation();
 
-//        callPhone(context);
+//        callPhone();
     }
 
     // 拨打电话 Context context
     public void callPhone(){
         Log.e("call phone","ok");
-//        String phoneNumber = "19376753837";
         String phoneNumber = sharedPreferences.getString("pre_key_phone", null);
         Log.e("phoneNumber",""+phoneNumber);
-//        Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
-//
-//        // 添加拨打电话的权限
-//        dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-//            Log.e("call phone","have permission");
-//
-//            try {
-//                TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
-//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//                    if (telephonyManager.getPhoneCount() > 1) {
-//                        // 获取第一个电话卡的subId
-//                        final int subIdForSlot;
-//                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//                            subIdForSlot = SubscriptionManager.getDefaultSubscriptionId();
-//                            if (subIdForSlot != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
-//                                ComponentName componentName = new ComponentName("com.android.phone", "com.android.services.telephony.TelephonyConnectionService");
-//                                PhoneAccountHandle phoneAccountHandle = null;
-//                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//                                    phoneAccountHandle = new PhoneAccountHandle(componentName, String.valueOf(subIdForSlot));
-//                                }
-//                                dialIntent.putExtra("android.telecom.extra.PHONE_ACCOUNT_HANDLE", phoneAccountHandle);
-//                            }
-//                        }
-//
-//                    }
-//                }
-//                dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//                context.startActivity(dialIntent);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//
-//            // 发起拨打电话
-//            dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-//            context.startActivity(dialIntent);
-//        }
+        Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+
+        // 添加拨打电话的权限
+        dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            Log.e("call phone","have permission");
+
+            try {
+                TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (telephonyManager.getPhoneCount() > 1) {
+                        // 获取第一个电话卡的subId
+                        final int subIdForSlot;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            subIdForSlot = SubscriptionManager.getDefaultSubscriptionId();
+                            if (subIdForSlot != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                                ComponentName componentName = new ComponentName("com.android.phone", "com.android.services.telephony.TelephonyConnectionService");
+                                PhoneAccountHandle phoneAccountHandle = null;
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    phoneAccountHandle = new PhoneAccountHandle(componentName, String.valueOf(subIdForSlot));
+                                }
+                                dialIntent.putExtra("android.telecom.extra.PHONE_ACCOUNT_HANDLE", phoneAccountHandle);
+                            }
+                        }
+
+                    }
+                }
+                dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(dialIntent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // 发起拨打电话
+            dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(dialIntent);
+        }
     }
 
     private class MyLocationListener extends BDAbstractLocationListener {

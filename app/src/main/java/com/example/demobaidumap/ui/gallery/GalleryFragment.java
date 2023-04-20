@@ -1,32 +1,48 @@
 package com.example.demobaidumap.ui.gallery;
 
+import com.baidu.mapapi.map.CircleOptions;
 import static android.app.Activity.RESULT_OK;
+import static android.content.Context.MODE_PRIVATE;
 import static androidx.core.content.ContextCompat.getSystemService;
 
+
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.SearchableInfo;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.hardware.TriggerEventListener;
+import android.location.Location;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.os.PersistableBundle;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.telecom.PhoneAccountHandle;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -51,6 +67,10 @@ import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.baidu.geofence.GeoFence;
+import com.baidu.geofence.GeoFenceClient;
+import com.baidu.geofence.GeoFenceListener;
+import com.baidu.geofence.model.DPoint;
 import com.baidu.location.BDAbstractLocationListener;
 import com.baidu.location.BDLocation;
 import com.baidu.location.LocationClient;
@@ -60,10 +80,12 @@ import com.baidu.mapapi.SDKInitializer;
 import com.baidu.mapapi.map.BaiduMap;
 import com.baidu.mapapi.map.BitmapDescriptor;
 import com.baidu.mapapi.map.BitmapDescriptorFactory;
+import com.baidu.mapapi.map.CircleOptions;
 import com.baidu.mapapi.map.MapStatus;
 import com.baidu.mapapi.map.MapStatusUpdate;
 import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MapView;
+import com.baidu.mapapi.map.MarkerOptions;
 import com.baidu.mapapi.map.MyLocationConfiguration;
 import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.map.Overlay;
@@ -87,6 +109,7 @@ import com.baidu.navisdk.adapter.IBaiduNaviManager;
 import com.baidu.navisdk.adapter.impl.BaiduNaviManager;
 import com.baidu.navisdk.adapter.map.BNItemOverlay;
 import com.baidu.navisdk.adapter.struct.BNTTsInitConfig;
+import com.baidu.navisdk.comapi.mapcontrol.MapParams;
 import com.example.demobaidumap.MainActivity;
 import com.example.demobaidumap.MyNavigation;
 import com.example.demobaidumap.NotificationUtils;
@@ -101,10 +124,18 @@ import java.io.File;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import com.baidu.mapapi.CoordType;
 import com.baidu.mapapi.SDKInitializer;
+import com.google.gson.Gson;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class GalleryFragment extends Fragment implements SensorEventListener,SearchActivity.OnDataPassListener {
 //    private FragmentGalleryBinding binding;
@@ -166,6 +197,29 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
     private double startLatitude;
     private double startLongitude;
 
+    GeoFenceClient mGeoFenceClient;
+    // 地理围栏的广播action
+    private static final String GEOFENCE_BROADCAST_ACTION = "liyue.edu.ncst.cn.mymap.DeleveryInfo";
+    //根据围栏id 记录每个围栏的状态
+    private HashMap<String, Integer> fenceIdMap = new HashMap<>();
+
+    // 设置电子围栏存入本地的中心经纬
+    Double latitude;
+    Double longitude;
+
+    Context context;
+
+
+    private Context mContext;
+//    private Activity mActivity;
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mContext = context;
+        mActivity = getActivity();
+    }
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -173,9 +227,38 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         SDKInitializer.setAgreePrivacy(context,true);
         SDKInitializer.initialize(context);
         SDKInitializer.setCoordType(CoordType.BD09LL);
+
+        context = getContext().getApplicationContext();
+
+
+        // 该行要加上，否则下面获取实例为null
+        LocationClient.setAgreePrivacy(true);
+        try {
+            mLocationClient = new LocationClient(context);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        requestLocation();
+        mLocationClient.registerLocationListener(new MyLocationListener());
+
+        SharedPreferences pref = requireActivity().getSharedPreferences("myPrefs", Context.MODE_MULTI_PROCESS);
+        boolean fenceCreated = pref.getBoolean("fenceSuccess", false);
+        latitude = Double.parseDouble(pref.getString("latitude","0.0"));
+        longitude = Double.parseDouble(pref.getString("longitude","0.0"));
+
+
+
+        Log.e("fenceCreated",""+fenceCreated);
+        Log.e("fenceCreated",""+latitude);
+        Log.e("fenceCreated",""+longitude);
+        if(fenceCreated){
+            createRail(latitude, longitude);
+        }
+
     }
 
 
+    @SuppressLint("MissingInflatedId")
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
@@ -197,7 +280,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         });
 //        searchLayout = searchLayout.findViewById(R.id.search_layout);
 
-//        mForegroundBtn = (Button) view.findViewById(R.id.bt_foreground);
+        mForegroundBtn = (Button) view.findViewById(R.id.bt_foreground);
 //        locationInfo = view.findViewById(R.id.locationInfo);
 
         ppp = new ArrayList();
@@ -223,27 +306,27 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
 //        registerStepCounter(stepFlag);
 
 
-
         // 后台定位
-//        mForegroundBtn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v){
-//                if(isEnableLocInForeground){
-//                    //关闭后台定位（true：通知栏消失；false：通知栏可手动划除）
-//                    mLocationClient.disableLocInForeground(true);
-//                    isEnableLocInForeground = false;
-//                    mForegroundBtn.setText(R.string.startforeground);
-//                    mLocationClient.stop();
-//                } else {
-//                    //开启后台定位
-//                    // 将定位SDK的SERVICE设置成为前台服务, 提高定位进程存活率
-//                    mLocationClient.enableLocInForeground(1, mNotification);
-//                    isEnableLocInForeground = true;
-//                    mForegroundBtn.setText(R.string.stopforeground);
-//                    mLocationClient.start();
-//                }
-//            }
-//        });
+        mForegroundBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v){
+                if(isEnableLocInForeground){
+                    //关闭后台定位（true：通知栏消失；false：通知栏可手动划除）
+                    mLocationClient.disableLocInForeground(true);
+                    isEnableLocInForeground = false;
+                    mForegroundBtn.setText(R.string.startforeground);
+                    mLocationClient.stop();
+                } else {
+                    // 开启后台定位
+                    // 将定位SDK的SERVICE设置成为前台服务, 提高定位进程存活率
+                    mLocationClient.enableLocInForeground(1, mNotification);
+                    isEnableLocInForeground = true;
+                    mForegroundBtn.setText(R.string.stopforeground);
+                    mLocationClient.start();
+                }
+            }
+        });
+
         // 后台持续运行
         initNotification();
 
@@ -279,17 +362,17 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
             getContext().startActivity(intent);
         }
 
-        // 该行要加上，否则下面获取实例为null
-        LocationClient.setAgreePrivacy(true);
-        try {
-            mLocationClient = new LocationClient(context);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-//        System.out.println("LocationClient实例："+mLocationClient);
-        mLocationClient.registerLocationListener(new MyLocationListener());
-
-        requestLocation();
+//        // 该行要加上，否则下面获取实例为null
+//        LocationClient.setAgreePrivacy(true);
+//        try {
+//            mLocationClient = new LocationClient(context);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+////        System.out.println("LocationClient实例："+mLocationClient);
+//        mLocationClient.registerLocationListener(new MyLocationListener());
+//
+//        requestLocation();
 
         // 用户跳转系统设置
         LocationManager locationManager = (LocationManager) getSystemService(context,LocationManager.class);
@@ -387,6 +470,9 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
 
             navigateTo(Location);
 
+            setTrackLocation(Location);
+
+
             String locationDescribe = Location.getLocationDescribe();    //获取位置描述信息，比如：在北江豪庭附近
 
         }
@@ -417,6 +503,64 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
 
         }
     };
+
+
+    List<LatLng> localTrack = new ArrayList();;
+    Boolean oneSetLastLat = true;
+    LatLng lastPosition;    // 上一次位置
+    // 存储定位信息，回看轨迹
+    public void setTrackLocation(BDLocation location){
+        // 当前位置
+        LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
+        localTrack.add(ll);
+        Log.e("in position","ok");
+
+        String nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+        if(oneSetLastLat){
+            lastPosition = ll;
+            oneSetLastLat = false;
+
+            // ArrayList 转 JSON
+            Gson gson = new Gson();
+            String json_array = gson.toJson(localTrack);
+
+            
+
+            SharedPreferences prefs = getActivity().getSharedPreferences("Track", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("track" + nowadays, ""+json_array);
+            editor.apply();
+
+            Log.e("one set lastpostion","return");
+        }
+
+        float[] results = new float[1];
+        Location.distanceBetween(lastPosition.latitude, lastPosition.longitude, ll.latitude, ll.longitude, results);
+
+        Log.e("distance between",""+results[0]);
+
+        // 判断如果间距大于100则存入本地，并更新lastPosition为现在位置
+        if(results[0] >= 20){
+            Log.e("distance more 100","ok");
+
+            // ArrayList 转 JSON
+            Gson gson = new Gson();
+            String json_array = gson.toJson(localTrack);
+
+            
+
+            SharedPreferences prefs = getActivity().getSharedPreferences("Track", MODE_PRIVATE);
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putString("track" + nowadays, ""+json_array);
+            editor.apply();
+
+            lastPosition = ll;
+            Log.e("setTrackLocation",""+localTrack);
+        }
+
+
+    }
 
 
     /*
@@ -455,22 +599,15 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         }
 //        System.out.println(ppp.size());
         if(ppp.size()>=2){
-            OverlayOptions mOverLay = new PolylineOptions()
-                    .width(10)
-                    .color(0xAAFF0000)
-                    .points(ppp);
+            // 轨迹
+//            OverlayOptions mOverLay = new PolylineOptions()
+//                    .width(10)
+//                    .color(0xAAFF0000)
+//                    .points(ppp);
+//
+//            Overlay mPolyline = (Polyline)mBaiduMap.addOverlay(mOverLay);
+//            mPolyline.setZIndex(3);
 
-            Overlay mPolyline = (Polyline)mBaiduMap.addOverlay(mOverLay);
-            mPolyline.setZIndex(3);
-
-//            // 创建轨迹对象
-//            TraceOptions traceOptions = initTraceOptions();
-//            // 创建图标
-//            BitmapDescriptor bitmap = BitmapDescriptorFactory.fromResource(R.drawable.marker_blue);
-//            // 设置轨迹动画图标并让图标平滑移动
-//            traceOptions.icon(bitmap).setPointMove(true);
-//            // 添加轨迹动画
-//            mTraceOverlay = mBaiduMap.addTraceOverlay(traceOptions, this);
         }
 
         Log.e("MyMap",  " latitude:" + Location.getLatitude()
@@ -558,61 +695,6 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         throw new RuntimeException("Stub!");
     }
 
-    // 计步传感器方法，true开始计数，false结束
-//    public void registerStepCounter(Boolean A){
-//        if(A == Boolean.TRUE){
-//            mStepCount = 0;
-//            Log.e("action","coming");
-//
-//            // 获取计步传感器服务：返回从开机到目前为止的步数
-////            stepCounter = mSensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
-//
-//            stepCounterListener = new SensorEventListener() {
-//                @Override
-//                public void onSensorChanged(SensorEvent sensorEvent) {
-//
-//                    Log.e("step","ok");
-//                    if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_DETECTOR){
-//                        if (sensorEvent.values[0] == 1.0f){
-//                            mStep++;
-//                            Log.e("step2","hello");
-//                        }
-//                    }else if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_COUNTER){
-//                        if(StepCounter_Open == 0){
-//                            StepCounter_Open = sensorEvent.values[0];
-//                        }
-//                        StepCounter_Close = sensorEvent.values[0];
-//
-//                        Log.i("sensorStep",StepCounter_Open+"");
-//                        Log.i("sensorStep",StepCounter_Close+"");
-//
-//                        int dayStep = (int)(StepCounter_Close - StepCounter_Open);
-//
-//                        String desc = String.format("设备检测到您当前走了%d步",dayStep);
-//                        stepText.append(dayStep+"\n");
-//
-//                    }
-//
-//                }
-//
-//                @Override
-//                public void onAccuracyChanged(Sensor sensor, int i) {
-//
-//                }
-//            };
-//
-//            mSensorManager.registerListener(stepCounterListener, stepCounter, SensorManager.SENSOR_DELAY_UI);
-//        }else{
-//            mSensorManager.unregisterListener(stepCounterListener);
-//            mStep = (int)StepCounter_Close - (int)StepCounter_Open;
-//            StepCounter_Open = 0;
-//            StepCounter_Close = 0;
-//            String desc = String.format("设备检测到您当前走了%d步，总计数为%d步",mStep,mStepCount);
-//            stepText.append(mStep+"\n");
-//            Log.e("step",desc);
-//        }
-//
-//    }
 
     // 方向传感器方法
     public void registerDirection(){
@@ -684,33 +766,298 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
     }
 
 
+
+    double endLat;
+    double endLong;
+    int mRadius;
     @Override
     public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK && requestCode == 1) {
+            int parttern = data.getIntExtra("parttern", 0);
+            Log.e("parttern", "" + parttern);
             double endLatitude = data.getDoubleExtra("latitude", 0.0);  // 获取纬度数据
             double endLongitude = data.getDoubleExtra("longitude", 0.0);  // 获取经度数据
+            endLat = endLatitude;
+            endLong = endLongitude;
             // 在A页面中使用获取到的坐标数据进行导航
             Log.e("warning", this.startLatitude + "" + this.startLongitude);
             Log.e("error", endLatitude + "" + endLatitude);
 
-            try {
-                Intent intent = new Intent("android.intent.action.VIEW", Uri.parse("baidumap://map/direction?destination=latlng:" + endLatitude + "," + endLongitude + "|name:目的地&mode=driving"));
-                intent.setPackage("com.baidu.BaiduMap");
-                if(intent.resolveActivity(getActivity().getPackageManager()) != null){
-                    startActivity(intent);
-                    Log.e("LOG LOGIN", "百度地图客户端已经安装") ;
-                }else {
-                    Log.e("LOG FAIL", "没有安装百度地图客户端") ;
+            // 1 导航 2创建地理围栏
+            if (parttern == 1) {
+                try {
+                    Intent intent = new Intent("android.intent.action.VIEW", Uri.parse("baidumap://map/direction?destination=latlng:" + endLatitude + "," + endLongitude + "|name:目的地&mode=driving"));
+                    intent.setPackage("com.baidu.BaiduMap");
+                    if (intent.resolveActivity(getActivity().getPackageManager()) != null) {
+                        startActivity(intent);
+                        Log.e("LOG LOGIN", "百度地图客户端已经安装");
+                    } else {
+                        Log.e("LOG FAIL", "没有安装百度地图客户端");
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
+            } else {
+                createRail(endLatitude, endLongitude);
+            }
+
+        }
+    }
+
+    //  创建电子围栏入口
+    public void createRail(double endLatitude, double endLongitude){
+        //实例化地理围栏客户端
+        GeoFenceClient mGeoFenceClient = new GeoFenceClient(getContext());
+
+        //设置希望侦测的围栏触发行为，默认只侦测用户进入围栏的行为
+        //public static final int GEOFENCE_IN 进入地理围栏
+        //public static final int GEOFENCE_OUT 退出地理围栏
+        //public static final int GEOFENCE_STAYED 在地理围栏内停留
+        //public static final int GEOFENCE_IN_OUT 进入、退出地理围栏
+        //public static final int GEOFENCE_IN_STAYED 进入地理围栏、在地理围栏内停留
+        //public static final int GEOFENCE_OUT_STAYED 退出地理围栏、在地理围栏内停留
+        //public static final int GEOFENCE_IN_OUT_STAYED 进入、退出、停留
+        mGeoFenceClient.setActivateAction(GeoFenceClient.GEOFENCE_IN_OUT_STAYED);
+
+        /**
+         * setTriggerCount(int in, int out, int stay)
+         * 设置进入围栏、离开围栏、在围栏内停留三种侦听行为的触发次数
+         * @param in 进入围栏的触发次数,类型为int,必须是>=0
+         * @param out 离开围栏的触发次数,类型为int,必须是>=0
+         * @param stay 在围栏内停留的触发次数,类型为int,必须是>=0
+         */
+        mGeoFenceClient.setTriggerCount(3, 3, 2);
+
+        //创建一个中心点坐标
+        DPoint centerPoint = new DPoint(endLatitude, endLongitude);
+
+        int rail_radius = Integer.parseInt(PreferenceManager
+                .getDefaultSharedPreferences(getContext()).getString("rail_radius", "10000"));
+        mRadius = rail_radius;
+
+        mGeoFenceClient.addGeoFence(centerPoint, GeoFenceClient.BD09LL, mRadius, "0001");
+
+        Log.e("WeiLan", "Will in");
+
+        // 创建回调监听
+        GeoFenceListener fenceListenter = new GeoFenceListener() {
+            @Override
+            public void onGeoFenceCreateFinished(List<GeoFence> list, int errorCode, String s) {
+                Log.i("WeiLan", errorCode+"inner"+s);
+                if(errorCode == GeoFence.ADDGEOFENCE_SUCCESS){//判断围栏是否创建成功
+                    Toast.makeText(getContext(), "添加围栏成功!!", Toast.LENGTH_SHORT).show();
+                    Log.e("WeiLan", "ok");
+                    //geoFenceList是已经添加的围栏列表，可据此查看创建的围栏
+                } else {
+                    Toast.makeText(getContext(), "添加围栏失败!!", Toast.LENGTH_SHORT).show();
+                    Log.e("WeiLan", "fail");
+                }
+            }
+        };
+        mGeoFenceClient.setGeoFenceListener(fenceListenter);
+
+        //创建并设置PendingIntent
+        mGeoFenceClient.createPendingIntent(GEOFENCE_BROADCAST_ACTION);
+        IntentFilter filter = new IntentFilter(
+                ConnectivityManager.CONNECTIVITY_ACTION);
+        filter.addAction(GEOFENCE_BROADCAST_ACTION);
+        getActivity().registerReceiver(mGeoFenceReceiver, filter);
+    }
+
+
+    private void drawCircle(LatLng centerLatLng, int radius) {
+            // Define circle options
+            CircleOptions circleOptions = new CircleOptions()
+                    .center(centerLatLng) // Set the center of the circle
+                    .radius(radius) // Set the radius in meters
+                    .fillColor(0x30ff0000); // Set the fill color (semi-transparent red)
+            mBaiduMap.addOverlay(circleOptions);
+            // Define marker options
+            
+            // Define marker options
+            MarkerOptions markerOptions = new MarkerOptions()
+                    .position(centerLatLng)
+                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.home_center)); // Set the icon of the marker
+            mBaiduMap.addOverlay(markerOptions);
+
+        }
+
+
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case 0:
+//                    tv.setText("添加围栏成功");
+                    Log.e("添加围栏成功","ok");
+                    Toast.makeText(context, "添加围栏成功",
+                            Toast.LENGTH_SHORT).show();
+                    //开始画围栏
+//                    drawFence2Map();
+                    break;
+                case 1:
+                    int errorCode = msg.arg1;
+                    Log.e("添加围栏失败","err");
+                    Toast.makeText(context, "添加围栏失败" + errorCode,
+                            Toast.LENGTH_SHORT).show();
+                    break;
+                case 2:
+                    break;
+                case 3:
+//                    tv.setText("定位失败");
+                    Log.e("定位失败","err");
+                    break;
+                case 4:
+                    Log.e("end",endLat+"@"+endLong);
+                    if(endLat == 0.0 || endLong == 0.0){
+                        LatLng LocalCenter = new LatLng(latitude, longitude);
+                        drawCircle(LocalCenter, mRadius);
+                    }else{
+                        LatLng center = new LatLng(endLat, endLong);
+                        drawCircle(center, mRadius);
+                    }
+
+                    // 设置电子围栏表示，下次进入页面直接渲染
+                    // 添加围栏成功，设置一个标记为true到SharedPreferences中
+                    SharedPreferences sharedPreferences = mActivity.getSharedPreferences("myPrefs", Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putBoolean("fenceSuccess", true);
+                    // 将经度和纬度存储在SharedPreferences中
+                    editor.putString("latitude", String.valueOf(endLat));
+                    editor.putString("longitude", String.valueOf(endLong));
+                    editor.apply();
+
+                    //遍历map 初始化是否在围栏里
+                    boolean isInFence = false;//默认false
+                    for (Integer value : fenceIdMap.values()) {
+                        if (value == GeoFence.STATUS_IN) {
+                            isInFence = true;
+                        }
+                    }
+                    if (isInFence) {
+                        Log.e("进入围栏","Ok");
+                    } else {
+//                        tv.setText("离开围栏");
+                        Log.e("离开围栏","leave");
+//                        callPhone();
+                    }
+                    break;
+                case 5:
+//                    tv.setText("离开围栏");
+                    Log.e("离开围栏","leave2");
+//                    callPhone();
+                    break;
+                case 6:
+//                    tv.setText("停留围栏");
+                    Log.e("停留围栏","step");
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
+
+    //  地理围栏回调 进入 离开 停留
+    private BroadcastReceiver mGeoFenceReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(GEOFENCE_BROADCAST_ACTION)) {
+                //解析广播内容
+                //获取Bundle
+                Bundle bundle = intent.getExtras();
+                //获取围栏行为：
+                int status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS);
+                //获取自定义的围栏标识：
+                String customId = bundle.getString(GeoFence.BUNDLE_KEY_CUSTOMID);
+                //获取围栏ID:
+                String fenceId = bundle.getString(GeoFence.BUNDLE_KEY_FENCEID);
+                //获取当前有触发的围栏对象：
+                GeoFence fence = bundle.getParcelable(GeoFence.BUNDLE_KEY_FENCE);
+                Log.i("sss", "获取围栏行为:" + status);
+                Message msg = Message.obtain();
+                //改变数据类型
+                fenceIdMap.put(fenceId, status);
+                switch (status) {
+                    case GeoFence.STATUS_LOCFAIL:
+                        Toast.makeText(context, "定位失败",
+                                Toast.LENGTH_SHORT).show();
+                        msg.what = 3;
+                        handler.sendMessage(msg);
+                        break;
+                    case GeoFence.STATUS_IN:
+                        Toast.makeText(context, "进入围栏",
+                                Toast.LENGTH_SHORT).show();
+                        msg.what = 4;
+                        handler.sendMessage(msg);
+                        break;
+                    case GeoFence.STATUS_OUT:
+                        Toast.makeText(context, "离开围栏",
+                                Toast.LENGTH_SHORT).show();
+                        msg.what = 5;
+                        handler.sendMessage(msg);
+                        break;
+                    case GeoFence.STATUS_STAYED:
+                        msg.what = 4;
+                        handler.sendMessage(msg);
+                        Toast.makeText(context, "停留在围栏内",
+                                Toast.LENGTH_SHORT).show();
+
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+    };
+
+    // 拨打电话 Context context
+    public void callPhone(){
+        Log.e("call phone","ok");
+        String phoneNumber = PreferenceManager
+                .getDefaultSharedPreferences(mActivity).getString("pre_key_phone", null);
+        Log.e("phoneNumber",""+phoneNumber);
+        Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
+
+        // 添加拨打电话的权限
+        dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+//        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
+            Log.e("call phone","have permission");
+
+            try {
+                TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (telephonyManager.getPhoneCount() > 1) {
+                        // 获取第一个电话卡的subId
+                        final int subIdForSlot;
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            subIdForSlot = SubscriptionManager.getDefaultSubscriptionId();
+                            if (subIdForSlot != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                                ComponentName componentName = new ComponentName("com.android.phone", "com.android.services.telephony.TelephonyConnectionService");
+                                PhoneAccountHandle phoneAccountHandle = null;
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                    phoneAccountHandle = new PhoneAccountHandle(componentName, String.valueOf(subIdForSlot));
+                                }
+                                dialIntent.putExtra("android.telecom.extra.PHONE_ACCOUNT_HANDLE", phoneAccountHandle);
+                            }
+                        }
+
+                    }
+                }
+                dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(dialIntent);
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-
-
-        }
+            // 发起拨打电话
+            dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            mActivity.startActivity(dialIntent);
+//        }
     }
+
+
 
     @Override
     public void onPause() {
@@ -718,4 +1065,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         mMapView.onPause();
         // 测试页面跳转，存储参数
     }
+    
+
+
 }

@@ -1,5 +1,6 @@
 package com.example.demobaidumap;
 
+
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -7,6 +8,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -45,6 +47,7 @@ public class MyNavigation extends AppCompatActivity {
     private ActivityMyNavigationBinding binding;
     private SharedViewModel sharedViewModel;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -52,6 +55,7 @@ public class MyNavigation extends AppCompatActivity {
         // 开始跌倒检测
         Intent intent = new Intent(this, FallDetectionService.class);
         startService(intent);
+
 
 
         binding = ActivityMyNavigationBinding.inflate(getLayoutInflater());

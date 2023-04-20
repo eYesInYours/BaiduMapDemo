@@ -39,6 +39,15 @@
             android:title="闹钟提醒"
             app:summary="设置主题与时间"/>
 
+        <EditTextPreference
+            android:key="rail_radius"
+            android:title="围栏半径（米）"
+            android:defaultValue=""
+            android:summary="设置电子围栏的覆盖半径"
+            app:useSimpleSummaryProvider="true"
+            android:singleLine="true"
+            />
+
 
     </PreferenceCategory>
 

@@ -2,6 +2,7 @@ package com.example.demobaidumap.ui.customPreference;
 
 import static android.content.Context.ALARM_SERVICE;
 
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -11,6 +12,7 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -30,6 +32,7 @@ import androidx.fragment.app.DialogFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.baidu.mshield.x6.recv.MyReceiver;
 import com.example.demobaidumap.R;
 import com.example.demobaidumap.ScrollingActivity;
 import com.example.demobaidumap.alarmlist.AlarmData;
@@ -78,12 +81,16 @@ public class MyDialogFragment extends DialogFragment {
                             mListener.onComplete(title, hour, minute);
 
                             String timeStr = hour+":"+minute;
+                            Log.e("alarm time",hour+"@"+minute);
                             // 添加闹钟列表
                             addAlarmTemplateView(title, timeStr);
 
                         }
 
                     }
+
+//                    private Object getSystemService(String alarmService) {
+//                    }
                 })
                 .setNegativeButton("取消", new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int id) {
