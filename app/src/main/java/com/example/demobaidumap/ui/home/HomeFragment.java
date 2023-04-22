@@ -36,6 +36,7 @@ import com.example.demobaidumap.MainActivity;
 import com.example.demobaidumap.NotificationUtils;
 import com.example.demobaidumap.R;
 import com.example.demobaidumap.databinding.FragmentHomeBinding;
+import com.example.demobaidumap.service.BackgroundLocationService;
 import com.example.demobaidumap.service.ZeroTimeClearStepsService;
 import com.example.demobaidumap.ui.gallery.GalleryFragment;
 import com.example.demobaidumap.util.StepService;
@@ -88,13 +89,15 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         Date yesterday = calendar.getTime();
         yesterdayString = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(yesterday);
 
+        String nowadays_exact = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-//        // 当前日期和存储的日期不一致，需要清零步数
-//        if (!all[0].equals(nowadays)) {
-//            SharedPreferences.Editor editor = prefs.edit();
-//            editor.putString(KEY_STEP_COUNT, nowadays+"@"+0);
-//            editor.apply();
-//        }
+//        SharedPreferences prefs = getActivity().getSharedPreferences("HomeLog",MODE_PRIVATE);
+//        SharedPreferences.Editor editor = prefs.edit();
+//        editor.putString("startHome" + nowadays_exact, ""+nowadays_exact);
+//        editor.apply();
+
+        Intent intent_bg = new Intent(getActivity(), BackgroundLocationService.class);
+        getActivity().startService(intent_bg);
 
 
     }
@@ -105,17 +108,6 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
 
         stepText = view.findViewById(R.id.textView2);
-
-        Log.e("allow step--",""+isSupportStep(getActivity()));
-
-        stepText.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String steps = StepUtil.getTodayStep(getActivity()) + "步";
-                Log.e("steps",""+steps  );
-//                stepText.setText(steps);
-            }
-        });
 
         mSensorManager = (SensorManager) getContext().getSystemService(Context.SENSOR_SERVICE);
 
@@ -171,16 +163,19 @@ public class HomeFragment extends Fragment implements SensorEventListener {
 
     }
 
+    // 记录第一天初始的总步数
+//    private int firstDayTotalStep = 0;
     // 计步传感器方法
     public void registerStepCounter(){
         stepCounterListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent sensorEvent) {
                 if (sensorEvent.sensor.getType() == Sensor.TYPE_STEP_COUNTER){
-                    Context context = getActivity().getApplicationContext();
+                    Context context = getActivity();
 
                     // 赋值步数（COUNTER获取的是开机的总步数），并将步数保存到SharedPreferences中
                     int stepCount = (int)sensorEvent.values[0];
+                    int stepCount_temp = stepCount;
                     SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
                     String savedStepCount = prefs.getString(KEY_STEP_COUNT+nowadays, "");
                     String[] all = savedStepCount.split("[@]");
@@ -193,8 +188,9 @@ public class HomeFragment extends Fragment implements SensorEventListener {
                     // 当前日期和存储的日期不一致，需要清零步数
                     if (!all[0].equals(nowadays)) {
                         SharedPreferences.Editor editor = prefs.edit();
-                        editor.putString(KEY_STEP_COUNT + nowadays, nowadays+"@"+0);
+                        editor.putString(KEY_STEP_COUNT + nowadays, nowadays+"@"+0+"@"+stepCount);
                         editor.apply();
+                        stepText.setText("您今日已运动：" + 0 + " 步");
                     } else {
                         // 获取昨天的运动步数
                         SharedPreferences prefs2 = context.getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
@@ -205,20 +201,40 @@ public class HomeFragment extends Fragment implements SensorEventListener {
 
                             Log.e("all_yesterday",""+all_yesterday);
 
-                            int lastStepCount = Integer.parseInt(all_yesterday[1]);
+                            int lastStepCount = Integer.parseInt(all_yesterday[2]);
+                            Log.e("lastStepCount",""+lastStepCount);
+                            Log.e("allStep",""+stepCount);
                             todayStepCount = stepCount - lastStepCount;
                             stepText.setText("您今日已运动：" + todayStepCount + " 步");
 
                             Log.e("todayStepCount",""+todayStepCount);
+
+                            SharedPreferences.Editor editor = prefs.edit();
+                            editor.putString(KEY_STEP_COUNT + nowadays, nowadays+"@"+todayStepCount+"@"+stepCount);
+                            editor.apply();
                         }else{
                             // 没有，表示第一天使用
-                            todayStepCount = stepCount;
-                            stepText.setText("您今日已运动：" + todayStepCount + " 步");
+                            String firstDayTotalStepStr = prefs.getString(KEY_STEP_COUNT+"firstDayTotalStep", "");
+                            if(firstDayTotalStepStr==""){
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString(KEY_STEP_COUNT + "firstDayTotalStep", ""+stepCount);
+                                editor.apply();
+                            }else{
+                                todayStepCount = stepCount - Integer.parseInt(firstDayTotalStepStr);
+                                Log.e("first todayStepCount",""+todayStepCount);
+                                stepText.setText("您今日已运动：" + todayStepCount + " 步");
+
+                                SharedPreferences.Editor editor = prefs.edit();
+                                editor.putString(KEY_STEP_COUNT + nowadays, nowadays+"@"+todayStepCount+"@"+stepCount);
+                                editor.apply();
+                            }
+//                            if(firstDayTotalStep==0){
+//                                firstDayTotalStep = stepCount;
+//                            }
+
                         }
 
-                        SharedPreferences.Editor editor = prefs.edit();
-                        editor.putString(KEY_STEP_COUNT + nowadays, nowadays+"@"+todayStepCount);
-                        editor.apply();
+
 
 
 

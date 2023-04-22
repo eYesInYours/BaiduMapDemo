@@ -133,6 +133,10 @@ import java.util.Map;
 import com.baidu.mapapi.CoordType;
 import com.baidu.mapapi.SDKInitializer;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -199,7 +203,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
 
     GeoFenceClient mGeoFenceClient;
     // 地理围栏的广播action
-    private static final String GEOFENCE_BROADCAST_ACTION = "liyue.edu.ncst.cn.mymap.DeleveryInfo";
+    public static final String GEOFENCE_BROADCAST_ACTION = "liyue.edu.ncst.cn.mymap.DeleveryInfo";
     //根据围栏id 记录每个围栏的状态
     private HashMap<String, Integer> fenceIdMap = new HashMap<>();
 
@@ -506,59 +510,53 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
 
 
     List<LatLng> localTrack = new ArrayList();;
-    Boolean oneSetLastLat = true;
-    LatLng lastPosition;    // 上一次位置
+    List<LatLng> newList = new ArrayList<>();
     // 存储定位信息，回看轨迹
     public void setTrackLocation(BDLocation location){
+        SharedPreferences prefs = getActivity().getSharedPreferences("Track", MODE_PRIVATE);
+
         // 当前位置
         LatLng ll = new LatLng(location.getLatitude(), location.getLongitude());
         localTrack.add(ll);
         Log.e("in position","ok");
 
         String nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String track = prefs.getString("track"+ nowadays, "");
 
-        if(oneSetLastLat){
-            lastPosition = ll;
-            oneSetLastLat = false;
-
-            // ArrayList 转 JSON
+        if(track == ""){
             Gson gson = new Gson();
             String json_array = gson.toJson(localTrack);
-
-            
-
-            SharedPreferences prefs = getActivity().getSharedPreferences("Track", MODE_PRIVATE);
             SharedPreferences.Editor editor = prefs.edit();
             editor.putString("track" + nowadays, ""+json_array);
             editor.apply();
+        }else{
 
-            Log.e("one set lastpostion","return");
+            JsonArray jsonArray = new JsonParser().parse(track).getAsJsonArray();
+            Log.e("json list",""+jsonArray);
+
+            // 3. 遍历 JsonArray 并将其转换回对象
+            for (JsonElement element : jsonArray) {
+                JsonObject jsonObject = element.getAsJsonObject();
+                Double latitude = jsonObject.get("latitude").getAsDouble();
+                Double longitude = jsonObject.get("longitude").getAsDouble();
+                newList.add(new LatLng(latitude, longitude));
+            }
+
+            LatLng finalLat = newList.get(newList.size()-1);
+
+            float[] results = new float[1];
+            Location.distanceBetween(finalLat.latitude, finalLat.longitude, ll.latitude, ll.longitude, results);
+
+            if(results[0] > 40){
+                newList.add(ll);
+                Gson gson = new Gson();
+                String json_newList_array = gson.toJson(newList);
+                SharedPreferences.Editor editor = prefs.edit();
+                editor.putString("track" + nowadays, ""+json_newList_array);
+                editor.apply();
+            }
+
         }
-
-        float[] results = new float[1];
-        Location.distanceBetween(lastPosition.latitude, lastPosition.longitude, ll.latitude, ll.longitude, results);
-
-        Log.e("distance between",""+results[0]);
-
-        // 判断如果间距大于100则存入本地，并更新lastPosition为现在位置
-        if(results[0] >= 20){
-            Log.e("distance more 100","ok");
-
-            // ArrayList 转 JSON
-            Gson gson = new Gson();
-            String json_array = gson.toJson(localTrack);
-
-            
-
-            SharedPreferences prefs = getActivity().getSharedPreferences("Track", MODE_PRIVATE);
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putString("track" + nowadays, ""+json_array);
-            editor.apply();
-
-            lastPosition = ll;
-            Log.e("setTrackLocation",""+localTrack);
-        }
-
 
     }
 
@@ -643,7 +641,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         } else {
             //获取一个Notification构造器
             Notification.Builder builder = new Notification.Builder(context);
-            Intent nfIntent = new Intent(context, MainActivity.class);
+            Intent nfIntent = new Intent(context, GalleryFragment.class);
 
             builder.setContentIntent(PendingIntent.
                             getActivity(context, 0, nfIntent, 0)) // 设置PendingIntent

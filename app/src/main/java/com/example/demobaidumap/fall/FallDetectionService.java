@@ -55,7 +55,7 @@ public class FallDetectionService extends Service {
         fallSensorManager.initSensor();
         fallSensorManager.registerSensor();
         fall = new Fall();
-        fall.setThresholdValue(80,30);
+        fall.setThresholdValue(90,30);
         running = true;
         //在通知栏上显示服务运行
 //        showInNotification();
@@ -79,8 +79,8 @@ public class FallDetectionService extends Service {
 
     @Override
     public void onDestroy() {
-        fallSensorManager.unregisterSensor();
-        localBroadcastManager.unregisterReceiver(fallLocalReceiver);
+//        fallSensorManager.unregisterSensor();
+//        localBroadcastManager.unregisterReceiver(fallLocalReceiver);
         super.onDestroy();
     }
 

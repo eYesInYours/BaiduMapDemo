@@ -3,7 +3,11 @@ package com.example.demobaidumap;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -22,6 +26,7 @@ import android.view.WindowManager;
 import android.widget.Toast;
 
 import com.example.demobaidumap.fall.FallDetectionService;
+import com.example.demobaidumap.service.BackgroundLocationService;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.annotation.NonNull;
@@ -39,6 +44,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.demobaidumap.databinding.ActivityMyNavigationBinding;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class MyNavigation extends AppCompatActivity {
@@ -56,7 +62,17 @@ public class MyNavigation extends AppCompatActivity {
         Intent intent = new Intent(this, FallDetectionService.class);
         startService(intent);
 
+        // 后台定位
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            NotificationChannel channel = new NotificationChannel("001", "BG_LOCATION", NotificationManager.IMPORTANCE_HIGH);
+//            NotificationManager manager = getSystemService(NotificationManager.class);
+//            manager.createNotificationChannel(channel);
+//        }
+//        Intent intent_bg = new Intent(this, BackgroundLocationService.class);
+//        startService(intent_bg);
 
+        // 零点自启，重设步数
+//        selfStartingResetSteps();
 
         binding = ActivityMyNavigationBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -162,6 +178,37 @@ public class MyNavigation extends AppCompatActivity {
             Intent intent2 = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + this.getPackageName()));
             this.startActivity(intent2);
         }
+
+    }
+
+    // 设置凌晨自启，用于更新步数
+    public void selfStartingResetSteps(){
+        // 创建Intent对象
+        Intent intent = new Intent(this, MyNavigation.class);
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        // 创建PendingIntent对象
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, 0);
+
+        // 获取AlarmManager对象
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        // 设置定时任务的触发时间
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(System.currentTimeMillis());
+        calendar.set(Calendar.HOUR_OF_DAY, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        long triggerTime =  calendar.getTimeInMillis();
+
+        // 设置定时任务的重复间隔
+        long interval = AlarmManager.INTERVAL_DAY;
+
+        // 设置定时任务的类型为RTC_WAKEUP，即在指定时间唤醒设备
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, triggerTime, interval, pendingIntent);
+
 
     }
 
