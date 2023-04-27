@@ -1,13 +1,18 @@
 package com.example.demobaidumap.fall;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -19,6 +24,8 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.example.demobaidumap.MyNavigation;
 import com.example.demobaidumap.R;
+
+import java.util.Calendar;
 
 public class FallDetectionService extends Service {
 
@@ -55,7 +62,7 @@ public class FallDetectionService extends Service {
         fallSensorManager.initSensor();
         fallSensorManager.registerSensor();
         fall = new Fall();
-        fall.setThresholdValue(90,30);
+        fall.setThresholdValue(70,30);
         running = true;
         //在通知栏上显示服务运行
 //        showInNotification();
@@ -65,6 +72,8 @@ public class FallDetectionService extends Service {
         intentFilter.addAction("com.broadcast.FALL_LOCAL_BROADCAST");
         fallLocalReceiver = new FallLocalReceiver();
         localBroadcastManager.registerReceiver(fallLocalReceiver, intentFilter);
+
+        startCountDownTimer();
     }
 
 
@@ -83,6 +92,48 @@ public class FallDetectionService extends Service {
 //        localBroadcastManager.unregisterReceiver(fallLocalReceiver);
         super.onDestroy();
     }
+
+    // 开始定时器
+    private CountDownTimer mCountDownTimer;
+    private final long COUNT_DOWN_INTERVAL = 3 * 60 * 60 * 1000;  // 定时器时间 3小时
+//    private final long COUNT_DOWN_INTERVAL = 10 * 1000;  // 定时器时间 测试 10s
+    private void startCountDownTimer() {
+        if (mCountDownTimer != null) {
+            mCountDownTimer.cancel();
+        }
+        mCountDownTimer = new CountDownTimer(COUNT_DOWN_INTERVAL, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                Calendar c = Calendar.getInstance();
+                int hour = c.get(Calendar.HOUR_OF_DAY);
+                Boolean isNightTime = hour >= 22 || hour < 6; // 晚上10点到早上6点是夜间时段
+                Log.e("isNightTime",""+isNightTime);
+                if(isNightTime){
+                    mCountDownTimer.cancel();
+                    return;
+                }
+
+                // 在这里进行加速度传感器的数值检测
+                // 如果数值超过阈值，则结束当前定时器，开启下一个定时器进行检测
+                // 否则继续等待下一次onTick()方法调用
+                // 获取加速度传感器的数值
+                SharedPreferences pref = getSharedPreferences("SVM",MODE_PRIVATE);
+                Float f = Float.parseFloat(pref.getString("svm",""));
+                Log.e("countdowm",""+f);
+                if (f > 10.0) {
+                    mCountDownTimer.cancel();
+                    startCountDownTimer(); // 开启下一个定时器进行检测
+                }
+            }
+
+            @Override
+            public void onFinish() {
+                startMyOwnForeground();
+                startCountDownTimer();
+            }
+        }.start();
+    }
+
 
     //开一个线程用于检测跌倒
     class DetectThread extends Thread{
@@ -128,18 +179,27 @@ public class FallDetectionService extends Service {
     /*
     在通知栏上显示服务运行
      */
-    private void showInNotification() {
-        Intent intent = new Intent(this, MyNavigation.class);
-        PendingIntent pi = PendingIntent.getActivity(this, 0, intent, 0);
-        Notification notification = new NotificationCompat.Builder(this)
-                .setContentTitle("老人跌到检测")
-                .setContentText("老人跌倒检测正在运行")
-                .setWhen(System.currentTimeMillis())
-                .setSmallIcon(R.drawable.ic_app)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_app))
-                .setContentIntent(pi)
-                .build();
-        startForeground(1,notification);
+    private void startMyOwnForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel("suggest", "channel_suggest", NotificationManager.IMPORTANCE_DEFAULT);
+            manager.createNotificationChannel(channel);
+
+            Notification.Builder builder = new Notification.Builder(this)
+                    .setContentTitle("您太久时间没有运动了")
+                    .setContentText("出门走走吧")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setPriority(Notification.PRIORITY_MIN)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setChannelId("suggest");
+
+            Notification notification = builder.build();
+            startForeground(22, notification);
+
+        }else{
+            startForeground(22, new Notification());
+        }
+
     }
 
 }

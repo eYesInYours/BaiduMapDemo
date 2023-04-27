@@ -11,11 +11,13 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -23,10 +25,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Menu;
 import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.demobaidumap.fall.FallDetectionService;
 import com.example.demobaidumap.service.BackgroundLocationService;
+import com.example.demobaidumap.service.GuardService;
+import com.example.demobaidumap.service.JobWakeUpService;
 import com.google.android.material.navigation.NavigationView;
 
 import androidx.annotation.NonNull;
@@ -43,15 +48,20 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.demobaidumap.databinding.ActivityMyNavigationBinding;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class MyNavigation extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMyNavigationBinding binding;
     private SharedViewModel sharedViewModel;
+
+    TextView textview;
 
 
     @Override
@@ -61,15 +71,6 @@ public class MyNavigation extends AppCompatActivity {
         // 开始跌倒检测
         Intent intent = new Intent(this, FallDetectionService.class);
         startService(intent);
-
-        // 后台定位
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            NotificationChannel channel = new NotificationChannel("001", "BG_LOCATION", NotificationManager.IMPORTANCE_HIGH);
-//            NotificationManager manager = getSystemService(NotificationManager.class);
-//            manager.createNotificationChannel(channel);
-//        }
-//        Intent intent_bg = new Intent(this, BackgroundLocationService.class);
-//        startService(intent_bg);
 
         // 零点自启，重设步数
 //        selfStartingResetSteps();
@@ -142,6 +143,20 @@ public class MyNavigation extends AppCompatActivity {
         NavigationUI.setupWithNavController(navigationView, navController);
 
 
+        // 获取导航标题：今日目标
+        View headerLayout = ((NavigationView) findViewById(R.id.nav_view)).getHeaderView(0);
+        textview = headerLayout.findViewById(R.id.textView_step);
+        Log.e("TextView",""+textview);
+
+        String nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String today_assign_step = PreferenceManager
+                .getDefaultSharedPreferences(getApplicationContext()).getString("list_preference"+nowadays, "6000");
+
+        Log.i("今日目标步数",""+today_assign_step);
+
+        textview.setText("今日目标："+today_assign_step+"步！");
+
+
         /*
          * 这里是添加权限
          * */
@@ -179,7 +194,46 @@ public class MyNavigation extends AppCompatActivity {
             this.startActivity(intent2);
         }
 
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("Track",MODE_PRIVATE);
+        Boolean isRoot = pref.getBoolean("isRoot",false);
+        if(isRoot){
+            startAllServices();
+        }
+
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        String today_assign_step = PreferenceManager
+                .getDefaultSharedPreferences(getApplicationContext()).getString("list_preference"+nowadays, "6000");
+
+        Log.i("今日目标步数",""+today_assign_step);
+
+        textview.setText("今日目标："+today_assign_step+"步！");
+    }
+
+    /**
+     * 开启所有Service
+     */
+    private void startAllServices()
+    {
+        Intent bgIntent = new Intent(this, BackgroundLocationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            //android8.0以上通过startForegroundService启动service
+            this.startForegroundService(bgIntent);
+        } else {
+            this. startService(bgIntent);
+        }
+        this.startService(new Intent(this, GuardService.class));
+        if(Build.VERSION.SDK_INT >=Build.VERSION_CODES.LOLLIPOP) {
+            Log.d("start service", "startAllServices: ");
+            //版本必须大于5.0
+            this.startService(new Intent(this, JobWakeUpService.class));
+        }
+    }
+
 
     // 设置凌晨自启，用于更新步数
     public void selfStartingResetSteps(){
@@ -237,7 +291,13 @@ public class MyNavigation extends AppCompatActivity {
                             return;
                         }
                     }
-//                    requestLocation();
+                    startAllServices();
+                    // 存入一个标识，下次不走这一个判断权限后的服务，直接开启服务
+                    SharedPreferences pref = getApplicationContext().getSharedPreferences("Track",MODE_PRIVATE);
+                    SharedPreferences.Editor editor = pref.edit();
+                    editor.putBoolean("isRoot",true);
+                    editor.apply();
+
                 }else{
                     Toast.makeText(this, "发生未知错误", Toast.LENGTH_SHORT).show();
                     finish();

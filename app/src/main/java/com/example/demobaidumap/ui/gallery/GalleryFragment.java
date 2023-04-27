@@ -255,7 +255,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         Log.e("fenceCreated",""+fenceCreated);
         Log.e("fenceCreated",""+latitude);
         Log.e("fenceCreated",""+longitude);
-        if(fenceCreated){
+        if(fenceCreated && latitude!=0.0 && longitude!=0.0){
             createRail(latitude, longitude);
         }
 
@@ -284,7 +284,7 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
         });
 //        searchLayout = searchLayout.findViewById(R.id.search_layout);
 
-        mForegroundBtn = (Button) view.findViewById(R.id.bt_foreground);
+//        mForegroundBtn = (Button) view.findViewById(R.id.bt_foreground);
 //        locationInfo = view.findViewById(R.id.locationInfo);
 
         ppp = new ArrayList();
@@ -311,25 +311,25 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
 
 
         // 后台定位
-        mForegroundBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v){
-                if(isEnableLocInForeground){
-                    //关闭后台定位（true：通知栏消失；false：通知栏可手动划除）
-                    mLocationClient.disableLocInForeground(true);
-                    isEnableLocInForeground = false;
-                    mForegroundBtn.setText(R.string.startforeground);
-                    mLocationClient.stop();
-                } else {
-                    // 开启后台定位
-                    // 将定位SDK的SERVICE设置成为前台服务, 提高定位进程存活率
-                    mLocationClient.enableLocInForeground(1, mNotification);
-                    isEnableLocInForeground = true;
-                    mForegroundBtn.setText(R.string.stopforeground);
-                    mLocationClient.start();
-                }
-            }
-        });
+//        mForegroundBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v){
+//                if(isEnableLocInForeground){
+//                    //关闭后台定位（true：通知栏消失；false：通知栏可手动划除）
+//                    mLocationClient.disableLocInForeground(true);
+//                    isEnableLocInForeground = false;
+//                    mForegroundBtn.setText(R.string.startforeground);
+//                    mLocationClient.stop();
+//                } else {
+//                    // 开启后台定位
+//                    // 将定位SDK的SERVICE设置成为前台服务, 提高定位进程存活率
+//                    mLocationClient.enableLocInForeground(1, mNotification);
+//                    isEnableLocInForeground = true;
+//                    mForegroundBtn.setText(R.string.stopforeground);
+//                    mLocationClient.start();
+//                }
+//            }
+//        });
 
         // 后台持续运行
         initNotification();
@@ -470,11 +470,12 @@ public class GalleryFragment extends Fragment implements SensorEventListener,Sea
                 Log.e("Location", "aboard" );
             }else{
                 Log.e("Location","home");
+                //            setTrackLocation(Location);
             }
 
             navigateTo(Location);
 
-            setTrackLocation(Location);
+
 
 
             String locationDescribe = Location.getLocationDescribe();    //获取位置描述信息，比如：在北江豪庭附近

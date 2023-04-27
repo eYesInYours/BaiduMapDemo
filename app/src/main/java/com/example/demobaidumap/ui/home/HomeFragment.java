@@ -4,26 +4,34 @@ import static android.content.Context.MODE_PRIVATE;
 
 import static com.example.demobaidumap.util.StepUtil.isSupportStep;
 
+import android.Manifest;
 import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -37,6 +45,8 @@ import com.example.demobaidumap.NotificationUtils;
 import com.example.demobaidumap.R;
 import com.example.demobaidumap.databinding.FragmentHomeBinding;
 import com.example.demobaidumap.service.BackgroundLocationService;
+import com.example.demobaidumap.service.GuardService;
+import com.example.demobaidumap.service.JobWakeUpService;
 import com.example.demobaidumap.service.ZeroTimeClearStepsService;
 import com.example.demobaidumap.ui.gallery.GalleryFragment;
 import com.example.demobaidumap.util.StepService;
@@ -45,6 +55,7 @@ import com.example.demobaidumap.util.StepUtil;
 import org.w3c.dom.Text;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
@@ -91,15 +102,35 @@ public class HomeFragment extends Fragment implements SensorEventListener {
 
         String nowadays_exact = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-//        SharedPreferences prefs = getActivity().getSharedPreferences("HomeLog",MODE_PRIVATE);
-//        SharedPreferences.Editor editor = prefs.edit();
-//        editor.putString("startHome" + nowadays_exact, ""+nowadays_exact);
-//        editor.apply();
 
-        Intent intent_bg = new Intent(getActivity(), BackgroundLocationService.class);
-        getActivity().startService(intent_bg);
+//        Intent intent_bg = new Intent(getActivity(), BackgroundLocationService.class);
+//        getActivity().startService(intent_bg);
 
 
+
+
+//        startAllServices();
+
+    }
+
+    /**
+     * 开启所有Service
+     */
+    private void startAllServices()
+    {
+        Intent bgIntent = new Intent(getActivity(), BackgroundLocationService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            //android8.0以上通过startForegroundService启动service
+            getActivity().startForegroundService(bgIntent);
+        } else {
+            getActivity(). startService(bgIntent);
+        }
+        getActivity().startService(new Intent(getActivity(), GuardService.class));
+        if(Build.VERSION.SDK_INT >=Build.VERSION_CODES.LOLLIPOP) {
+            Log.d("start service", "startAllServices: ");
+            //版本必须大于5.0
+            getActivity().startService(new Intent(getActivity(), JobWakeUpService.class));
+        }
     }
 
 
@@ -126,6 +157,39 @@ public class HomeFragment extends Fragment implements SensorEventListener {
         return view;
     }
 
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Log.e("resCode","requestCode"+requestCode);
+        switch (requestCode) {
+            case 1:
+                for (int i = 0; i < permissions.length; i++) {
+                    if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
+                        // 申请成功
+                        Log.d("TAG", "[权限]" + "ACTIVITY_RECOGNITION 申请成功");
+                    } else {
+                        // 申请失败
+                        Log.d("TAG", "[权限]" + "ACTIVITY_RECOGNITION 申请失败");
+                    }
+                }
+
+                if (grantResults.length > 0) {
+                    for (int result : grantResults) {
+                        if (result != PackageManager.PERMISSION_GRANTED) {
+                            Toast.makeText(getContext(), "必须同意所有的权限才能使用本程序", Toast.LENGTH_SHORT).show();
+//                            finish();
+                            return;
+                        }
+                    }
+                }else{
+                    Toast.makeText(getContext(), "发生未知错误", Toast.LENGTH_SHORT).show();
+//                    finish();
+                }
+                break;
+        }
+    }
 
 
     @Override

@@ -10,6 +10,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CalendarView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,6 +21,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.baidu.mapapi.model.LatLng;
+import com.example.demobaidumap.StepDetailSuggest;
 import com.example.demobaidumap.databinding.FragmentSlideshowBinding;
 import com.example.demobaidumap.ui.track.MyTrackActivity;
 import com.google.gson.JsonArray;
@@ -29,6 +31,7 @@ import com.google.gson.JsonParser;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -38,11 +41,21 @@ public class SlideshowFragment extends Fragment {
     private FragmentSlideshowBinding binding;
     String track_nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
     String selectedDate_step;
+    String selectedWeek;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.e("aside in","ok");
+
+        Calendar calendar = Calendar.getInstance();
+
+        calendar.set(Integer.parseInt(track_nowadays.split("-")[0]),
+                Integer.parseInt(track_nowadays.split("-")[1])-1,
+                Integer.parseInt(track_nowadays.split("-")[2]));
+        // 从1到7分别表示周日到周六
+        selectedWeek = String.valueOf(calendar.get(Calendar.DAY_OF_WEEK));
+
     }
 
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -55,6 +68,7 @@ public class SlideshowFragment extends Fragment {
 
         CalendarView calendarview = binding.calendarView;
         TextView step = binding.step;
+
 
         String nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
         SharedPreferences prefs = getActivity().getSharedPreferences("StepCounterPrefs", MODE_PRIVATE);
@@ -71,6 +85,10 @@ public class SlideshowFragment extends Fragment {
         calendarview.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
             @Override
             public void onSelectedDayChange(CalendarView view, int year, int month, int dayOfMonth) {
+                Calendar calendar = Calendar.getInstance();
+                calendar.set(year, month, dayOfMonth);
+                selectedWeek = String.valueOf(calendar.get(Calendar.DAY_OF_WEEK));
+
 //                Toast.makeText(getContext(), "您选择的时间是："+ year + "年" + month + "月" + dayOfMonth + "日",Toast.LENGTH_SHORT).show();
                 String selectedDate = year + "-0" + (month+1) + "-" + dayOfMonth;
                 track_nowadays = selectedDate;
@@ -91,7 +109,8 @@ public class SlideshowFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 Log.e("step",""+selectedDate_step);
-                if(selectedDate_step == "" || selectedDate_step == null){
+                if(selectedDate_step == "" || Integer.parseInt(selectedDate_step.split("@")[1]) == 0){
+                    Toast.makeText(getContext(), "您当日还未进行运动，无法查看轨迹",Toast.LENGTH_SHORT).show();
                     return;
                 }
 
@@ -121,11 +140,29 @@ public class SlideshowFragment extends Fragment {
                     Toast.makeText(getContext(), "轨迹太短，不支持回看",Toast.LENGTH_SHORT).show();
                 }
 
-
-
-
             }
         });
+
+
+        // 点击步数查看建议
+        RelativeLayout step_container = binding.stepContainer;
+        step_container.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(selectedDate_step == "" || Integer.parseInt(selectedDate_step.split("@")[1]) == 0){
+                    Toast.makeText(getContext(), "您当日还未进行运动，无法查看进度与建议",Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Log.e("date",""+track_nowadays);
+                Log.e("week",""+selectedWeek);
+                Intent intent = new Intent(getActivity(), StepDetailSuggest.class);
+                intent.putExtra("date", track_nowadays);
+                intent.putExtra("week",selectedWeek);
+                startActivity(intent);
+            }
+        });
+
 
         return root;
     }

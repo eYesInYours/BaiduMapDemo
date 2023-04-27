@@ -172,32 +172,32 @@ public class MyTrackActivity extends Activity {
         MapStatusUpdate msu2 = MapStatusUpdateFactory.newLatLng(newList.get(1));
         mBaiduMap.animateMapStatus(msu2);
 
-            if(newList.size() >= 2){
-                List<BitmapDescriptor> textureList = new ArrayList<>();
-                // 声明箭头图片资源
-                BitmapDescriptor arrowBitmap = BitmapDescriptorFactory.fromResource(R.drawable.track_arrow);
-                textureList.add(arrowBitmap);
-
-                List<Integer> textureIndexList = new ArrayList<>();
-                for (int i = 0; i < newList.size() - 1; i++) {
-                    LatLng startPoint = newList.get(i);
-                    LatLng endPoint = newList.get(i + 1);
-                    double angle = getAngle(startPoint, endPoint);
-                    textureIndexList.add(i);
-                    // 添加箭头图片的显示角度
-//                    arrowBitmap = BitmapDescriptorFactory.fromBitmap(
-//                            rotateBitmap(arrowBitmap.getBitmap(), (float) angle));
-                    textureList.add(arrowBitmap);
-                }
+            if(newList.size() >= 3){
+//                List<BitmapDescriptor> textureList = new ArrayList<>();
+//                // 声明箭头图片资源
+//                BitmapDescriptor arrowBitmap = BitmapDescriptorFactory.fromResource(R.drawable.track_arrow);
+//                textureList.add(arrowBitmap);
+//
+//                List<Integer> textureIndexList = new ArrayList<>();
+//                for (int i = 0; i < newList.size() - 1; i++) {
+//                    LatLng startPoint = newList.get(i);
+//                    LatLng endPoint = newList.get(i + 1);
+//                    double angle = getAngle(startPoint, endPoint);
+//                    textureIndexList.add(i);
+//                    // 添加箭头图片的显示角度
+////                    arrowBitmap = BitmapDescriptorFactory.fromBitmap(
+////                            rotateBitmap(arrowBitmap.getBitmap(), (float) angle));
+//                    textureList.add(arrowBitmap);
+//                }
 
                 // 第一个元素是国外经纬度，去除
-                newList.remove(0);
+//                newList.remove(0);
                 PolylineOptions mOverLay = new PolylineOptions()
                         .width(10)
                         .color(0xFF5400ff)
-                        .points(newList)
-                        .customTextureList(textureList)
-                        .textureIndex(textureIndexList);
+                        .points(newList);
+//                        .customTextureList(textureList)
+//                        .textureIndex(textureIndexList);
 
                 Polyline mPolyline = (Polyline) mBaiduMap.addOverlay(mOverLay);
 

@@ -7,8 +7,9 @@
 
 
     <EditText
+        android:layout_gravity="center"
         android:id="@+id/edit_text"
-        android:layout_width="400dp"
+        android:layout_width="370dp"
         android:layout_height="wrap_content"
         android:hint="输入内容"
         android:padding="16dp"/>

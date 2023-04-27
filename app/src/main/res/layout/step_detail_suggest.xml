@@ -1,0 +1,236 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".StepDetailSuggest">
+
+    <TextView
+        android:id="@+id/nowadays"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="70dp"
+        android:layout_centerHorizontal="true"
+        android:textSize="28sp"
+        android:layout_marginEnd="10dp"
+        android:text="2023年4月22日"
+        android:textAlignment="center"
+        tools:ignore="MissingConstraints" />
+
+    <TextView
+        android:id="@+id/week"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/nowadays"
+        android:layout_centerHorizontal="true"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="10dp"
+        android:text="星期六"
+        android:textAlignment="center"
+        android:textSize="24sp"
+        tools:ignore="MissingConstraints" />
+
+    <RelativeLayout
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:id="@+id/progress_box"
+        android:layout_below="@+id/week"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true">
+
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="@android:style/Widget.DeviceDefault.ProgressBar.Large"
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:layout_gravity="center"
+            android:indeterminate="true"
+            android:visibility="visible"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"/>
+
+        <TextView
+            android:id="@+id/progress_text"
+            android:layout_width="70dp"
+            android:layout_height="69dp"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:text="1627步"
+            android:textAlignment="center"
+            android:textSize="24sp" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/list_show"
+        android:layout_width="392dp"
+        android:layout_height="312dp"
+        android:layout_below="@+id/progress_box"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="42dp"
+        android:layout_marginRight="16dp"
+        android:layout_marginBottom="20dp"
+        >
+
+        <!--  list 1     -->
+        <LinearLayout
+            android:id="@+id/list1"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:orientation="vertical"
+            android:background="@drawable/suggest_list"
+            >
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="40dp">
+                <TextView
+                    android:id="@+id/now_steps"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="60dp"
+                    android:gravity="start"
+                    android:padding="10dp"
+                    android:text="1627步"
+                    android:textSize="24sp"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/assign_steps"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:layout_height="60dp"
+                    android:gravity="end"
+                    android:padding="10dp"
+                    android:text="目标：10000步"
+                    android:textSize="21sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="10dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:id="@+id/diff_step_progress"
+                    android:text="差 8768 步就达成目标了！"
+                    android:textStyle="italic"
+                    android:textSize="17sp"
+                    android:gravity="center">
+                </TextView>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!--   list 2     -->
+        <LinearLayout
+            android:id="@+id/list2"
+            android:layout_below="@+id/list1"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:background="@drawable/suggest_list"
+            >
+            <!--      左      -->
+            <LinearLayout
+                android:layout_width="130dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="10dp">
+                <TextView
+                    android:id="@+id/list2_left1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="消耗"
+                    android:textSize="20dp"></TextView>
+
+                <TextView
+                    android:id="@+id/list2_left2"
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:text="35千卡"
+                    android:textSize="24dp"
+                    android:textStyle="bold"></TextView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="274dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/list2_right1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:text="相当于消耗1个鸡蛋"
+                    android:textSize="15sp"
+                    android:textStyle="italic"></TextView>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/list3"
+            android:layout_below="@+id/list2"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal"
+            android:background="@drawable/suggest_list"
+            >
+            <!--      左      -->
+            <LinearLayout
+                android:layout_width="120dp"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="10dp">
+                <TextView
+                    android:id="@+id/list3_left1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="距离"
+                    android:textSize="20dp"></TextView>
+                <TextView
+                    android:id="@+id/list3_left2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="1.26公里"
+                    android:textSize="24dp"
+                    android:textStyle="bold"></TextView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="260dp"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="10dp">
+
+                <TextView
+                    android:id="@+id/list3_right1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start"
+                    android:text="相当于走了3.14圈标准操场"
+                    android:textSize="15sp"
+                    android:textStyle="italic"></TextView>
+            </LinearLayout>
+
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</RelativeLayout>

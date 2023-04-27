@@ -33,6 +33,8 @@
     <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -43,15 +45,12 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         tools:targetApi="31">
-        <service
-            android:name=".GuardService"
-            android:enabled="true"
-            android:exported="true"></service>
+
 
         <activity
             android:name=".search.SearchActivity"
             android:exported="false"
-            android:label="@string/title_activity_search"
+            android:label="搜索"
             android:theme="@style/AppTheme.NoActionBar">
             <meta-data
                 android:name="android.app.lib_name"
@@ -69,7 +68,7 @@
         <activity
             android:name=".SettingsActivity"
             android:exported="false"
-            android:label="@string/title_activity_settings">
+            android:label="设置">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -98,8 +97,11 @@
             android:label="闹钟" />
         <activity
             android:name=".ui.track.MyTrackActivity"
-            android:label="闹钟" />
+            android:label="轨迹" />
         <activity android:name=".ui.customPreference.AlarmShow" /> <!-- <activity android:name=".search.SearchActivity" /> -->
+
+        <activity android:name=".StepDetailSuggest"/>
+
         <meta-data
             android:name="com.baidu.lbsapi.API_KEY"
             android:value="eOyH7a8jU9wogVLGb4VNorAerdbO3EXM" />
@@ -121,6 +123,13 @@
             android:name=".fall.FallDetectionService"
             android:enabled="true"
             android:exported="true" />
+
+        <service
+            android:name=".service.JobWakeUpService"
+            android:permission="android.permission.BIND_JOB_SERVICE"></service>
+
+        <service android:name=".service.GuardService"></service>
+
         <service
             android:name=".service.BackgroundLocationService"
             android:enabled="true"
@@ -144,6 +153,15 @@
             android:name=".fall.FallLocalReceiver"
             android:enabled="true"
             android:exported="true" />
+
+        <receiver
+            android:name=".receive.mReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

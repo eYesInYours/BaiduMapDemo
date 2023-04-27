@@ -105,7 +105,7 @@ public class Fall{
     public static void setSvmFilteringData(){
         //中值滤波取的三个值
         float s1, s2, s3, temp;
-        //冒泡排序
+        //冒泡排序（升序）
         for (int i = 0; i < svmFilteringData.length-1; i++){
             if(i == 0){
                 s1 = svmData[i];

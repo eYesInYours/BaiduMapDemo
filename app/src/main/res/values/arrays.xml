@@ -9,4 +9,20 @@
         <item>reply</item>
         <item>reply_all</item>
     </string-array>
+
+
+<!--  用户今日运动目标列表  -->
+    <string-array name="list_items">
+        <item>6000步</item>
+        <item>8000步</item>
+        <item>10000步</item>
+    </string-array>
+
+    <string-array name="list_item_values">
+        <item>6000</item>
+        <item>8000</item>
+        <item>10000</item>
+    </string-array>
+
+
 </resources>

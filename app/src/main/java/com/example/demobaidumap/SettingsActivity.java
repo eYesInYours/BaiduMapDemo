@@ -11,9 +11,15 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.EditTextPreference;
+import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 // implements SharedPreferences.OnSharedPreferenceChangeListener
 public class SettingsActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
     public static final String KEY_NAME = "pre_key_name";
@@ -39,6 +45,7 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                     .replace(R.id.settings, mSettingsFragment)
                     .commit();
         }
+
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -108,17 +115,6 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                 }
 
 
-//                phonePre.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-//                    @Override
-//                    public boolean onPreferenceChange(Preference preference, Object newValue) {
-//                        SharedPreferences.Editor editor = sharedPreferences.edit();
-//                        editor.putString(key, newValue.toString());
-//                        editor.apply();
-//                        preference.setSummary(newValue.toString());
-//                        return true;
-//                    }
-//                });
-
                 break;
         }
     }
@@ -153,6 +149,20 @@ public class SettingsActivity extends AppCompatActivity implements SharedPrefere
                     SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     editor.putString("rail_radius", newValue.toString());
+                    editor.apply();
+                    return true;
+                }
+            });
+
+            ListPreference list_preference = findPreference("list_preference");
+            list_preference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    String nowadays = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+
+                    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    editor.putString("list_preference"+nowadays, newValue.toString());
                     editor.apply();
                     return true;
                 }

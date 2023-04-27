@@ -1,8 +1,11 @@
 package com.example.demobaidumap.service;
 
+import static androidx.core.app.NotificationCompat.PRIORITY_MIN;
 import static com.example.demobaidumap.ui.gallery.GalleryFragment.GEOFENCE_BROADCAST_ACTION;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -10,8 +13,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.Uri;
@@ -20,6 +25,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.PowerManager;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.SubscriptionManager;
@@ -28,7 +35,9 @@ import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import com.baidu.geofence.GeoFence;
 import com.baidu.geofence.GeoFenceClient;
@@ -46,8 +55,10 @@ import com.baidu.mapapi.map.MapStatusUpdateFactory;
 import com.baidu.mapapi.map.MyLocationData;
 import com.baidu.mapapi.model.LatLng;
 import com.example.demobaidumap.MyNavigation;
+import com.example.demobaidumap.NotificationUtils;
 import com.example.demobaidumap.R;
 import com.example.demobaidumap.ui.gallery.GalleryFragment;
+import com.example.demobaidumap.util.StepService;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -56,56 +67,147 @@ import com.google.gson.JsonParser;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
 public class BackgroundLocationService extends Service {
+    private static final String CHANNEL_ID = "Service";
     private LocationClient mLocationClient = null;
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return new ProcessConnection.Stub(){
+            @Override
+            public void basicTypes(int anInt, long aLong, boolean aBoolean, float aFloat, double aDouble, String aString) throws RemoteException {
+
+            }
+        };
     }
 
     @Override
     public void onCreate() {
         super.onCreate();
         Context context = getApplicationContext().getApplicationContext();
+        // 用户同意隐私条款
         SDKInitializer.setAgreePrivacy(context,true);
+        // 初始化百度地图SDK
         SDKInitializer.initialize(context);
+        // 指定百度地图使用地图类型
         SDKInitializer.setCoordType(CoordType.BD09LL);
 
         LocationClient.setAgreePrivacy(true);
         try {
+            // 获取定位实例
             mLocationClient = new LocationClient(context);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        // 地图配置
         requestLocation();
+        // 注册位置监听
         mLocationClient.registerLocationListener(new MyLocationListener());
-
-
-
-
-
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // 将Service置于前台状态
-//        Notification notification = new NotificationCompat.Builder(this, "001")
-//                .setContentTitle("后台定位")
-//                .setContentText("后台正在定位，可在系统中查看轨迹")
-//                .setSmallIcon(R.drawable.notification)
-//                .build();
-//        startForeground(1, notification);
-
-        // 返回START_STICKY，表示系统会尝试重新启动Service，即使Service在被系统终止后也会重新启动
+        getLock(getApplicationContext());
+//        startForeground(1,new Notification());
+//        startForeground();
+        startMyOwnForeground();
+        //绑定建立链接
+        bindService(new Intent(this,GuardService.class),
+                mServiceConnection, Context.BIND_IMPORTANT);
         return START_STICKY;
     }
+
+private void startMyOwnForeground() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel("Service", "channel_service", NotificationManager.IMPORTANCE_DEFAULT);
+            manager.createNotificationChannel(channel);
+
+            Notification.Builder builder = new Notification.Builder(this)
+                    .setContentTitle("安全定位服务")
+                    .setContentText("已为你开启摔倒检测与地理围栏功能")
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setPriority(Notification.PRIORITY_MIN)
+                    .setCategory(Notification.CATEGORY_SERVICE)
+                    .setChannelId("Service");
+
+            Notification notification = builder.build();
+            startForeground(1, notification);
+
+        }else{
+            startForeground(1, new Notification());
+        }
+
+    }
+
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        releaseLock();
+    }
+
+    /**
+     * 同步方法   得到休眠锁
+     * @param context
+     * @return
+     */
+    PowerManager.WakeLock mWakeLock = null;
+    synchronized private void getLock(Context context){
+        if(mWakeLock==null){
+            PowerManager mgr=(PowerManager)context.getSystemService(Context.POWER_SERVICE);
+            mWakeLock=mgr.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, BackgroundLocationService.class.getName());
+            mWakeLock.setReferenceCounted(true);
+            Calendar c=Calendar.getInstance();
+            c.setTimeInMillis((System.currentTimeMillis()));
+            int hour =c.get(Calendar.HOUR_OF_DAY);
+            if(hour>=23||hour<=6){
+                mWakeLock.acquire(5000);
+            }else{
+                mWakeLock.acquire(300000);
+            }
+        }
+        Log.v("DemoBaiduMap lock","get lock");
+    }
+
+    synchronized private void releaseLock()
+    {
+        if(mWakeLock!=null){
+            if(mWakeLock.isHeld()) {
+                mWakeLock.release();
+                Log.v("DemoBaiduMap unlock","release lock");
+            }
+
+            mWakeLock=null;
+        }
+    }
+
+
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+            //链接上
+            Log.d("test","StepService:建立链接");
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName componentName) {
+            //断开链接
+            startService(new Intent(BackgroundLocationService.this,GuardService.class));
+            //重新绑定
+            bindService(new Intent(BackgroundLocationService.this,GuardService.class),
+                    mServiceConnection, Context.BIND_IMPORTANT);
+        }
+    };
+
 
 
     private void requestLocation(){
@@ -115,59 +217,45 @@ public class BackgroundLocationService extends Service {
 
     private void initLocation(){
         LocationClientOption option = new LocationClientOption();
-        option.setLocationMode(LocationClientOption.LocationMode.Hight_Accuracy);
-        // 可选，设置定位模式，默认高精度
-        // LocationMode.Hight_Accuracy：高精度
-        // LocationMode.Battery_Saving：低功耗
+        // LocationMode.Hight_Accuracy：高精度  LocationMode.Battery_Saving：低功耗
         // LocationMode.Device_Sensors：仅使用设备
-
+        option.setLocationMode(LocationClientOption.LocationMode.Hight_Accuracy);
+        // 设置返回经纬坐标类型 GCJ02：国测局坐标  BD09ll：百度经纬度坐标  BD09：百度墨卡托坐标
         option.setCoorType("bd09ll");
-        // 可选，设置返回经纬坐标类型，默认GCJ02
-        // GCJ02：国测局坐标
-        // BD09ll：百度经纬度坐标
-
-        // BD09：百度墨卡托坐标
-
         //可选，设置是否需要设备方向结果
         option.setNeedDeviceDirect(true);
-
-        option.setScanSpan(1000);
-
+        // 扫描次数
+        option.setScanSpan(100);
+        // 开启GPS
         option.setOpenGps(true);
-
+        // 需要位置信息
         option.setIsNeedAddress(true);
         option.setIsNeedLocationPoiList(true);
-
-        option.setLocationNotify(true);
-        // GPS有效时1s/1次频率输出GPS结果
-
-        option.setIgnoreKillProcess(false);
-        // 是否在stop时杀死这个进程，建议否
-
-        option.SetIgnoreCacheException(false);
-        // 是否手机Crash信息，默认收集false
-
-        option.setWifiCacheTimeOut(5 * 60 * 1000);
-        // 首次定位时判断当前wifi是否超过有效期
-
-        option.setEnableSimulateGnss(false);
-        // 是否需要过滤GPS仿真结果，默认需要false
-
-        option.setIsNeedAddress(true);
-        option.setIsNeedLocationDescribe(true);
         //可选，是否需要位置描述信息，默认为不需要，即参数为false
+        option.setIsNeedLocationDescribe(true);
 
-        //设置打开自动回调位置模式，该开关打开后，期间只要定位SDK检测到位置变化就会主动回调给开发者，该模式下开发者无需再关心定位间隔是多少，定位SDK本身发现位置变化就会及时回调给开发者
+        // GPS有效时1s/1次频率输出GPS结果
+        option.setLocationNotify(true);
+        // 是否在stop时杀死这个进程，建议否
+        option.setIgnoreKillProcess(false);
+        // 是否收集Crash信息，默认收集false
+        option.SetIgnoreCacheException(false);
+        // 首次定位时判断当前wifi是否超过有效期
+        option.setWifiCacheTimeOut(5 * 60 * 1000);
+        // 是否需要过滤GPS仿真结果，默认需要false
+        option.setEnableSimulateGnss(false);
+
+        //设置打开自动回调位置模式，该开关打开后，期间只要定位SDK检测到位置变化就会主动回调给开发者。
+        // 定位SDK本身发现位置变化就会及时回调给开发者
         option.setOpenAutoNotifyMode();
         //设置打开自动回调位置模式，该开关打开后，期间只要定位SDK检测到位置变化就会主动回调给开发者
-        option.setOpenAutoNotifyMode(3000, 1, LocationClientOption.LOC_SENSITIVITY_HIGHT);
+        option.setOpenAutoNotifyMode(2000, 2, LocationClientOption.LOC_SENSITIVITY_HIGHT);
 
         mLocationClient.setLocOption(option);
 
     }
 
     private class MyLocationListener extends BDAbstractLocationListener {
-
         @Override
         public void onReceiveLocation(BDLocation Location) {
             if (Location == null) {
@@ -178,21 +266,29 @@ public class BackgroundLocationService extends Service {
 
 //            navigateTo(Location);
             Log.d("getLocationWhere",""+Location.getLocationWhere());
-            if(Location.getLocationWhere() == BDLocation.LOCATION_WHERE_IN_CN){
+            if(Location.getLocationWhere() == Location.LOCATION_WHERE_IN_CN){
                 Log.e("home position",Location.getLatitude()+","+Location.getLongitude());
                 setTrackLocation(Location);
+            }else{
+                Log.e("home position else",Location.getLatitude()+","+Location.getLongitude());
             }
-
-
 
         }
     }
 
     List<LatLng> localTrack = new ArrayList();;
     Boolean doOneCreateRail = true;
+    int count = 1;
     // 存储定位信息，回看轨迹
     public void setTrackLocation(BDLocation location){
         SharedPreferences prefs = getApplicationContext().getSharedPreferences("Track", MODE_PRIVATE);
+
+        // 干扰数据去除
+        if(count<=3){
+            count++;
+            Log.e("return",""+count);
+            return;
+        }
 
         // 判断国内外
         if(location.getLocationWhere() == BDLocation.LOCATION_WHERE_OUT_CN){
@@ -204,7 +300,7 @@ public class BackgroundLocationService extends Service {
             boolean fenceCreated = pref.getBoolean("fenceSuccess", false);
             double rail_latitude = Double.parseDouble(pref.getString("latitude", "0.0"));
             double rail_longitude = Double.parseDouble(pref.getString("longitude", "0.0"));
-            if(fenceCreated && doOneCreateRail){
+            if(fenceCreated && doOneCreateRail && rail_latitude!=0.0 && rail_longitude!=0.0){
                 createRail(rail_latitude, rail_longitude);
                 doOneCreateRail = false;
             }
@@ -225,10 +321,10 @@ public class BackgroundLocationService extends Service {
                 editor.putString("track" + nowadays, ""+json_array);
                 editor.apply();
             }else{
+                // 字符串转JsonArray
                 JsonArray jsonArray = new JsonParser().parse(track).getAsJsonArray();
-//            Log.e("json list",""+jsonArray);
 
-                // 3. 遍历 JsonArray 并将其转换回对象
+                // 遍历 JsonArray 并将其转换回对象
                 List<LatLng> newList = new ArrayList<>();
                 for (JsonElement element : jsonArray) {
                     JsonObject jsonObject = element.getAsJsonObject();
@@ -237,14 +333,16 @@ public class BackgroundLocationService extends Service {
                     newList.add(new LatLng(latitude, longitude));
                 }
 
+                // 本地今日键名轨迹数据最后一个
                 LatLng finalLat = newList.get(newList.size()-1);
 
+                // 两经纬度差值距离
                 float[] results = new float[1];
                 Location.distanceBetween(finalLat.latitude, finalLat.longitude, ll.latitude, ll.longitude, results);
 
-                if(results[0] > 4 && results[0] < 6){
-                    Log.e("more than 40","ok");
+                if(results[0] > 2 && results[0] < 30){
                     newList.add(ll);
+                    // 更新当前位置节点后存储本地
                     Gson gson = new Gson();
                     String json_newList_array = gson.toJson(newList);
                     SharedPreferences.Editor editor = prefs.edit();
@@ -261,26 +359,13 @@ public class BackgroundLocationService extends Service {
 
     //  创建电子围栏入口
     public void createRail(double endLatitude, double endLongitude){
-        //实例化地理围栏客户端
+        // 实例化地理围栏客户端
         GeoFenceClient mGeoFenceClient = new GeoFenceClient(getApplicationContext());
 
-        //设置希望侦测的围栏触发行为，默认只侦测用户进入围栏的行为
-        //public static final int GEOFENCE_IN 进入地理围栏
-        //public static final int GEOFENCE_OUT 退出地理围栏
-        //public static final int GEOFENCE_STAYED 在地理围栏内停留
-        //public static final int GEOFENCE_IN_OUT 进入、退出地理围栏
-        //public static final int GEOFENCE_IN_STAYED 进入地理围栏、在地理围栏内停留
-        //public static final int GEOFENCE_OUT_STAYED 退出地理围栏、在地理围栏内停留
-        //public static final int GEOFENCE_IN_OUT_STAYED 进入、退出、停留
+        // 设置希望侦测的围栏触发行为，默认只侦测用户进入围栏的行为
         mGeoFenceClient.setActivateAction(GeoFenceClient.GEOFENCE_IN_OUT_STAYED);
 
-        /**
-         * setTriggerCount(int in, int out, int stay)
-         * 设置进入围栏、离开围栏、在围栏内停留三种侦听行为的触发次数
-         * @param in 进入围栏的触发次数,类型为int,必须是>=0
-         * @param out 离开围栏的触发次数,类型为int,必须是>=0
-         * @param stay 在围栏内停留的触发次数,类型为int,必须是>=0
-         */
+        // 设置进入围栏、离开围栏、在围栏内停留三种侦听行为的触发次数
         mGeoFenceClient.setTriggerCount(3, 3, 2);
 
         //创建一个中心点坐标
@@ -311,7 +396,7 @@ public class BackgroundLocationService extends Service {
         };
         mGeoFenceClient.setGeoFenceListener(fenceListenter);
 
-        //创建并设置PendingIntent
+        //创建并设置PendingIntent：将在围栏事件被触发时触发
         mGeoFenceClient.createPendingIntent(GEOFENCE_BROADCAST_ACTION);
         IntentFilter filter = new IntentFilter(
                 ConnectivityManager.CONNECTIVITY_ACTION);
@@ -321,26 +406,26 @@ public class BackgroundLocationService extends Service {
 
     //  地理围栏回调 进入 离开 停留
     //根据围栏id 记录每个围栏的状态
+    /*
+    获取自定义的围栏标识：
+    String customId = bundle.getString(GeoFence.BUNDLE_KEY_CUSTOMID);
+    //获取当前有触发的围栏对象：
+    GeoFence fence = bundle.getParcelable(GeoFence.BUNDLE_KEY_FENCE);
+    * */
     private HashMap<String, Integer> fenceIdMap = new HashMap<>();
     private BroadcastReceiver mGeoFenceReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(GEOFENCE_BROADCAST_ACTION)) {
-                //解析广播内容
-                //获取Bundle
+                //获取Bundle：解析广播内容
                 Bundle bundle = intent.getExtras();
                 //获取围栏行为：
                 int status = bundle.getInt(GeoFence.BUNDLE_KEY_FENCESTATUS);
-                //获取自定义的围栏标识：
-                String customId = bundle.getString(GeoFence.BUNDLE_KEY_CUSTOMID);
                 //获取围栏ID:
                 String fenceId = bundle.getString(GeoFence.BUNDLE_KEY_FENCEID);
-                //获取当前有触发的围栏对象：
-                GeoFence fence = bundle.getParcelable(GeoFence.BUNDLE_KEY_FENCE);
-                Log.i("sss", "获取围栏行为:" + status);
-                Message msg = Message.obtain();
                 //改变数据类型
                 fenceIdMap.put(fenceId, status);
+                Message msg = Message.obtain();
                 switch (status) {
                     case GeoFence.STATUS_LOCFAIL:
                         Toast.makeText(context, "定位失败",
@@ -381,12 +466,9 @@ public class BackgroundLocationService extends Service {
             super.handleMessage(msg);
             switch (msg.what) {
                 case 0:
-//                    tv.setText("添加围栏成功");
                     Log.e("添加围栏成功","ok");
                     Toast.makeText(getApplicationContext(), "添加围栏成功",
                             Toast.LENGTH_SHORT).show();
-                    //开始画围栏
-//                    drawFence2Map();
                     break;
                 case 1:
                     int errorCode = msg.arg1;
@@ -401,8 +483,6 @@ public class BackgroundLocationService extends Service {
                     Log.e("定位失败","err");
                     break;
                 case 4:
-
-                    //遍历map 初始化是否在围栏里
                     boolean isInFence = false;//默认false
                     for (Integer value : fenceIdMap.values()) {
                         if (value == GeoFence.STATUS_IN) {
@@ -412,18 +492,15 @@ public class BackgroundLocationService extends Service {
                     if (isInFence) {
                         Log.e("进入围栏 back","Ok");
                     } else {
-//                        tv.setText("离开围栏");
                         Log.e("离开围栏 back","leave");
                         callPhone();
                     }
                     break;
                 case 5:
-//                    tv.setText("离开围栏");
                     Log.e("离开围栏 back","leave2");
                     callPhone();
                     break;
                 case 6:
-//                    tv.setText("停留围栏");
                     Log.e("停留围栏","step");
                     break;
                 default:
@@ -475,7 +552,6 @@ public class BackgroundLocationService extends Service {
         getApplicationContext().startActivity(dialIntent);
 //        }
     }
-
 
 
 }

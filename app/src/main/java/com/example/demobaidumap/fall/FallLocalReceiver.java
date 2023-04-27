@@ -88,15 +88,14 @@ public class FallLocalReceiver extends BroadcastReceiver {
 
     // 拨打电话 Context context
     public void callPhone(){
-        Log.e("call phone","ok");
         String phoneNumber = sharedPreferences.getString("pre_key_phone", null);
-        Log.e("phoneNumber",""+phoneNumber);
+  
+        // 指定为拨打电话操作，并携带电话参数
         Intent dialIntent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + phoneNumber));
 
         // 添加拨打电话的权限
         dialIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
-            Log.e("call phone","have permission");
 
             try {
                 TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
